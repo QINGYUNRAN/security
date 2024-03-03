@@ -1,0 +1,28 @@
+{% extends 'home/layout.html' %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<h2>Home Page</h2>
+<p>Welcome back, {{ username }}!</p>
+
+<div class="employee-info-container">
+    {% for record in records %}
+    <div class="employee-card">
+        <div class="info-block">
+            <span class="info-title">Date:</span>
+            <span class="info-content">{{ record.date }}</span>
+        </div>
+        <div class="info-block">
+            <span class="info-title">Attendance:</span>
+            <span class="info-content">{{ 'Present' if record.attendance else 'Absent' }}</span>
+        </div>
+        <div class="info-block">
+            <span class="info-title">Reason:</span>
+            <span class="info-content">{{ record.reason }}</span>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}

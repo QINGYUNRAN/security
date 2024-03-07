@@ -1,3 +1,4 @@
+import smtplib
 from flask import (
     Flask,
     render_template,
@@ -11,6 +12,10 @@ from flask import (
 import re
 import html
 import argparse
+import time
+import pyotp
+from email.header import Header
+from email.mime.text import MIMEText
 
 parser = argparse.ArgumentParser(description="Argparse")
 parser.add_argument("--xss", default=False, type=bool, help="whether set xss attacks")
@@ -45,9 +50,17 @@ def index():
     return redirect(url_for("login"))
 
 
+key = (
+    pyotp.random_base32()
+)  # same key create same password, no one else can get the key
+print(key)
+totp = pyotp.TOTP(key)
+
+
 @app.route("/pythonlogin/", methods=["GET", "POST"])
 def login():
     # Check if "username" and "password" POST requests exist (user submitted form)
+    print(request.method)
     if (
         request.method == "POST"
         and "username" in request.form
@@ -57,14 +70,83 @@ def login():
         password = request.form["password"]
         user = account.get(username)
         print(user, username)
+
         if user and user["password"] == password:
-            session["loggedin"] = True
+            ver_code = totp.now()
+            print(ver_code)  # time base for 30 seconds, after that it will exceeed
+
+            # send to your email box
+            from_addr = "2387324762@qq.com"
+            email_password = "pdewxqltfshtebia"
+            to_addr = "2387324762@qq.com"
+            smtp_server = "smtp.qq.com"
+
+            msg = MIMEText(
+                f"Dear Sir/Madam,\n"
+                + "  "
+                + f"Your veification code is {ver_code}."
+                + "\n"
+                "\n"
+                "Best regards,\n"
+                "Message from ",  # company name
+                "plain",
+                "utf-8",
+            )
+            msg["From"] = Header(from_addr)
+            msg["To"] = Header(from_addr)
+            subject = f"Verification code message"
+            msg["Subject"] = Header(subject, "utf-8")
+
+            try:
+                smtpobj = smtplib.SMTP_SSL(smtp_server)
+                smtpobj.connect(smtp_server, 465)
+                smtpobj.login(from_addr, email_password)
+                smtpobj.sendmail(from_addr, to_addr, msg.as_string())
+                print("Send successfully")
+            except smtplib.SMTPException:
+                print("Fail to send")
+            finally:
+                smtpobj.quit()
             session["username"] = username
+            session["vercode"] = ver_code
             print(session)
-            return redirect(url_for("home"))
+            flash("Correct password, please input your verification code", "warning")
+            return redirect(url_for("verify"))
         else:
             flash("Incorrect username/password!", "danger")
     return render_template("auth/login.html", title="Login")
+
+
+@app.route("/pythonlogin/verify", methods=["GET", "POST"])
+def verify():
+    # Check if "username" and "password" POST requests exist (user submitted form)
+    print(request.method)
+    if (
+        request.method == "POST"
+        # and "username" in request.form
+        # and "password" in request.form
+        and "vercode" in request.form
+    ):
+        vercode = request.form["vercode"]
+        # print(type(vercode))
+        # print(ver_code)
+        # print(totp.verify(str(vercode)))
+        if vercode == session["vercode"]:
+            # 2FA email verification
+
+            # username = request.form["username"]
+            # user = account.get(username)
+            # print(user, username)
+
+            session["loggedin"] = True
+            # session["username"] = username
+
+            print(session)
+            # flash("You have successfully registered!", "success")
+            return redirect(url_for("home"))
+        else:
+            flash("Incorrect verification code!", "danger")
+    return render_template("auth/verify.html", title="Verify")
 
 
 # # template for xss attacks
@@ -108,7 +190,6 @@ def register():
                 "password": password,
                 "email": email,
             }
-            flash("You have successfully registered!", "success")
             return redirect(url_for("login"))
     return render_template("auth/register.html", title="Register")
 
@@ -186,3 +267,34 @@ def change_password():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
+
+# # 2FA in python
+# import time
+# import pyotp
+# key = pyotp.random_base32  # same key create same password, no one else can get the key
+# print(key)
+# # key = "mysuperkey" # can also generate manually
+# totp = pyotp.TOTP(key)
+# print(totp.now())  # time base for 30 seconds, after that it will exceeed
+
+# time.sleep(30)
+# print(totp.now())  # 30 seconds later, exceed
+
+# input_code = input("Enter your 2FA Code.")
+# print(totp.verify(input_code)) # verify whether the code is the same with the input one
+
+
+# # counter based
+# counter = 0
+# hotp = pyotp.HOTP(key)
+# print(hotp.at(0))
+# print(hotp.at(1))
+# print(hotp.at(2))
+# print(hotp.at(3))
+# print(hotp.at(4))
+# # based on counter number
+
+# for _ in range(5):
+#     print(hotp.verify(input("enter code"), counter))
+#     counter += 1

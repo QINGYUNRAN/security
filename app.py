@@ -18,10 +18,15 @@ from email.header import Header
 from email.mime.text import MIMEText
 from pynput import keyboard
 
+from file_checker import check_integrity
+
 parser = argparse.ArgumentParser(description="Argparse")
 parser.add_argument("--xss", default=False, type=bool, help="whether set xss attacks")
 parser.add_argument(
     "--keylogger", default=False, type=bool, help="whether set key logger"
+)
+parser.add_argument(
+    "--filecheck", default=False, type=bool, help="whether check file integrity"
 )
 args = parser.parse_args()
 app = Flask(__name__)
@@ -57,7 +62,7 @@ def index():
 key = (
     pyotp.random_base32()
 )  # same key create same password, no one else can get the key
-print(key)
+# print(key)
 totp = pyotp.TOTP(key)
 
 
@@ -284,12 +289,29 @@ def keyPressed(key):  # automatically passing in key (the info)
 
 
 if __name__ == "__main__":
-    if args.keylogger == True:
-        listener = keyboard.Listener(
-            on_press=keyPressed
-        )  # everytime the key is pressed, passed information to keypressed function
-        listener.start()
-    app.run(debug=True)
+    # file check may need to combine with database
+    if args.filecheck == True:
+        directory_to_check = input("Enter directory path to check integrity:")
+        original_all = check_integrity(directory_to_check)
+        if str(input("Check the integrity of the files?")) == "Y":
+            new_all = check_integrity(directory_to_check)
+        flag = True
+        for index, i in enumerate(original_all):
+            if i != new_all[index]:
+                flag = False
+                break
+        if flag == False:
+            print(f"The integrity of file {index} is impaired.")
+        else:
+            print("All files are integral.")
+
+    else:
+        if args.keylogger == True:
+            listener = keyboard.Listener(
+                on_press=keyPressed
+            )  # everytime the key is pressed, passed information to keypressed function
+            listener.start()
+        app.run(debug=True)
 
 
 # # 2FA in python

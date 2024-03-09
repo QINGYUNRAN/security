@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 import re
+import pandas as pd
 app = Flask(__name__)
 app.secret_key = '1'
 
@@ -7,12 +8,10 @@ account = {'username1': {'username': 'username1', 'password': 'password1', 'emai
         'username2': {'username': 'username2', 'password': 'password2', 'email': 'email2@example.com'},
         'ran':{'username': 'ran', 'password': '123', 'email': '123@mail.com'},
     }
-user_info = {
-    'ran': [
-        {'date': '2024-02-29', 'attendance': True, 'reason': 'Worked on project X'},
-        {'date': '2024-03-01', 'attendance': False, 'reason': 'Sick leave'},
-    ],
-}
+employee_records = pd.read_csv("data/data/employees.csv").to_dict(orient='records')
+checkin_records = pd.read_csv("data/data/checkIn.csv").to_dict(orient='records')
+salary_records = pd.read_csv("data/data/salary.csv").to_dict(orient='records')
+holidays_records = pd.read_csv("data/data/holidays.csv").to_dict(orient='records')
 
 @app.route('/')
 def index():
@@ -62,7 +61,7 @@ def home():
     # Check if user is loggedin
     if 'loggedin' in session and session['loggedin'] == True:
         username = session['username']
-        records = user_info.get(username, [])
+        records = employee_records
         return render_template('home/home.html', username=username, records=records, title="Home")
 
     # User is not loggedin redirect to login page
@@ -77,6 +76,31 @@ def profile():
         return render_template('auth/profile.html', account=account[session['username']], title="Profile")
     # User is not loggedin redirect to login page
     return redirect(url_for('login'))
+
+@app.route('/checkin')
+def checkin():
+    # Check if user is loggedin
+    if 'loggedin' in session and session['loggedin'] == True:
+        records = checkin_records
+        return render_template('home/checkin.html', records=records, title="Checkin")
+    return redirect(url_for('login'))
+
+@app.route('/salary')
+def salary():
+    # Check if user is loggedin
+    if 'loggedin' in session and session['loggedin'] == True:
+        records = salary_records
+        return render_template('home/salary.html', records=records, title="Salary")
+    return redirect(url_for('login'))
+
+@app.route('/holidays')
+def holidays():
+    # Check if user is loggedin
+    if 'loggedin' in session and session['loggedin'] == True:
+        records = holidays_records
+        return render_template('home/holidays.html', records=records, title="Holidays")
+    return redirect(url_for('login'))
+
 
 @app.route('/logout')
 def logout():

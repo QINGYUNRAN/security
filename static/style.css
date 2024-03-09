@@ -86,7 +86,7 @@ body , #auth{
 .navtop div {
   	display: flex;
   	margin: 0 auto;
-  	width: 1000px;
+  	width: 1300px;
   	height: 100%;
 }
 .navtop div h1, .navtop div a {
@@ -117,7 +117,7 @@ body.loggedin {
   	background-color: #f3f4f7;
 }
 .content {
-  	width: 1000px;
+  	width: 1300px;
   	margin: 0 auto;
 }
 .content h2 {
@@ -227,7 +227,7 @@ body.loggedin {
     display: flex;
     flex-direction: column;
     width: 100%; /* Full width of the container */
-    max-width: 1000px; /* Maximum width of the container */
+    max-width: 1300px; /* Maximum width of the container */
     margin: 20px auto; /* Centering the container */
 }
 
@@ -267,4 +267,46 @@ body.loggedin {
 /* Info Content Styles */
 .info-content {
     flex-grow: 1; /* Take up remaining space */
+}
+
+
+/* Table Styles */
+.content table {
+    width: 100%; /* Full width */
+    border-collapse: collapse; /* Remove gaps between borders */
+    margin: 25px 0; /* Same as other content elements */
+    background-color: #fff; /* White background */
+    box-shadow: 0 0 5px 0 rgba(0, 0, 0, 0.1); /* Consistent with other content elements */
+}
+
+.content table th, .content table td {
+    border: 1px solid #dee0e4; /* Light grey border */
+    padding: 8px; /* Padding for space around content */
+    text-align: left; /* Align text to the left */
+    color: #4a536e; /* Dark grey text, consistent with other content text */
+}
+
+.content table th {
+    background-color: #f3f4f7; /* Light grey background for header */
+    color: #4a536e; /* Dark grey text */
+    font-weight: bold; /* Make header text bold */
+}
+
+/* Add zebra-striping to table rows */
+.content table tr:nth-child(even) {
+    background-color: #f2f2f2; /* Light grey for even rows */
+}
+
+
+
+.status-process {
+    background-color: rgba(230, 255, 0, 0.55);
+}
+
+.pass {
+    background-color: #eaffea; /* Light green for pass */
+}
+
+.fail {
+    background-color: #ffecec; /* Light red for fail */
 }

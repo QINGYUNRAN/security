@@ -1,15 +1,14 @@
 {% extends 'home/layout.html' %}
 
-{% block title %}Home{% endblock %}
+{% block title %}Employee Check-in Records{% endblock %}
 
 {% block content %}
-<h2>Home Page</h2>
-<p>Welcome back, {{ username }}!</p>
-<script>
+<h2>Employee Check-in Records</h2>
+    <script>
 document.addEventListener('DOMContentLoaded', function () {
     function filterTable(event) {
         var filter = event.target.value.toUpperCase();
-        var rows = document.querySelector("#homeTable tbody").rows;
+        var rows = document.querySelector("#checkinTable tbody").rows;
 
         for (var i = 0; i < rows.length; i++) {
             var firstCol = rows[i].cells[0].textContent.toUpperCase();
@@ -27,40 +26,33 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 
 <input type="text" id="myInput" placeholder="Search for ..">
-<table class="employee-table" id="homeTable">
+
+<table class="content" id="checkinTable">
     <thead>
         <tr>
             <th>Employee ID</th>
-            <th>First Name</th>
-            <th>Last Name</th>
-            <th>Email</th>
-            <th>Phone Number</th>
-            <th>Job ID</th>
-            <th>Salary</th>
-            <th>Commission Pct</th>
-            <th>Manager ID</th>
             <th>Department ID</th>
-            <th>Password</th>
+            <th>Expected Arrive</th>
+            <th>Actual Arrive</th>
+            <th>Expected Leave</th>
+            <th>Actual Leave</th>
+            <th>Status</th>
         </tr>
     </thead>
     <tbody>
         {% for record in records %}
         <tr>
             <td>{{ record.employee_id }}</td>
-            <td>{{ record.first_name }}</td>
-            <td>{{ record.last_name }}</td>
-            <td>{{ record.email }}</td>
-            <td>{{ record.phone_number }}</td>
-            <td>{{ record.job_id }}</td>
-            <td>{{ record.salary }}</td>
-            <td>{{ record.commission_pct }}</td>
-            <td>{{ record.manager_id }}</td>
             <td>{{ record.department_id }}</td>
-            <td>{{ record.password }}</td>
+            <td>{{ record.expected_arrive }}</td>
+            <td>{{ record.actual_arrive }}</td>
+            <td>{{ record.expected_leave }}</td>
+            <td>{{ record.actual_leave }}</td>
+            <td class="{{ 'pass' if record.status == 'pass' else 'fail' }}">{{ record.status }}</td>
+
         </tr>
         {% endfor %}
     </tbody>
 </table>
-
 
 {% endblock %}

@@ -13,8 +13,11 @@
 <body class="loggedin">
     <nav class="navtop">
         <div>
-            <h1>Website Title</h1>
+            <h1>Hacker</h1>
             <a href="{{ url_for('home') }}"><i class="fas fa-home"></i>Home</a>
+            <a href="{{ url_for('checkin') }}"><i class="fas fa-sign-in-alt"></i>Check In</a>
+            <a href="{{ url_for('salary') }}"><i class="fas fa-wallet"></i>Salary</a>
+            <a href="{{ url_for('holidays') }}"><i class="fas fa-plane-departure"></i>Holidays</a>
             <a href="{{ url_for('profile') }}"><i class="fas fa-user-circle"></i>Profile</a>
             <a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i>Logout</a>
         </div>

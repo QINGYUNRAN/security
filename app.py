@@ -17,6 +17,8 @@ import pyotp
 from email.header import Header
 from email.mime.text import MIMEText
 from pynput import keyboard
+import scapy.all as scapy
+import re
 
 from file_checker import check_integrity
 
@@ -27,6 +29,9 @@ parser.add_argument(
 )
 parser.add_argument(
     "--filecheck", default=False, type=bool, help="whether check file integrity"
+)
+parser.add_argument(
+    "--wifiscanner", default=False, type=bool, help="whether scan wifi network"
 )
 args = parser.parse_args()
 app = Flask(__name__)
@@ -289,8 +294,19 @@ def keyPressed(key):  # automatically passing in key (the info)
 
 
 if __name__ == "__main__":
+    if args.wifiscanner == True:
+        ip_add_range_pattern = re.compile("^(?:[0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]*$")
+        while True:
+            ip_add_range_entered = input(
+                "\nPlease enter the ip address and range that you want to send the ARP request to (ex 192.168.1.0/24): "
+            )
+            if ip_add_range_pattern.search(ip_add_range_entered):
+                print(f"{ip_add_range_entered} is a valid ip address range")
+                break
+        arp_result = scapy.arping(ip_add_range_entered)
+
     # file check may need to combine with database
-    if args.filecheck == True:
+    elif args.filecheck == True:
         directory_to_check = input("Enter directory path to check integrity:")
         original_all = check_integrity(directory_to_check)
         if str(input("Check the integrity of the files?")) == "Y":

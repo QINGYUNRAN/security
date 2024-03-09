@@ -37,6 +37,31 @@ args = parser.parse_args()
 app = Flask(__name__)
 app.secret_key = "1"
 
+import mysql.connector
+
+config = {
+    "user": "root",
+    "password": "mysql20011005",
+    "host": "127.0.0.1",  # my ifconfig ip address: 192.168.1.80
+    "database": "myemployees",
+}
+
+# 建立连接
+cnx = mysql.connector.connect(**config)
+
+# 创建一个游标对象
+cursor = cnx.cursor()
+
+# 执行一个查询
+query = "SELECT * FROM employees"
+cursor.execute(query)
+rows = cursor.fetchall()
+for row in rows:
+    print(row)
+# 关闭游标和连接
+cursor.close()
+cnx.close()
+
 account = {
     "username1": {
         "username": "username1",
@@ -242,6 +267,57 @@ def profile():
         # User is loggedin show them the home page
         return render_template(
             "auth/profile.html", account=account[session["username"]], title="Profile"
+        )
+    # User is not loggedin redirect to login page
+    return redirect(url_for("login"))
+
+
+@app.route("/checkin")
+def checkin():
+    # Check if user is loggedin
+    if "loggedin" in session and session["loggedin"] == True:
+        # User is loggedin show them the home page
+        username = html.escape(session["username"])
+        # username = request.args.get("username")
+        records = user_info.get(username, [])
+        # print(args.xss)
+        # print(args)
+        return render_template(
+            "auth/checkin.html", username=username, records=records, title="checkin"
+        )
+    # User is not loggedin redirect to login page
+    return redirect(url_for("login"))
+
+
+@app.route("/holidays")
+def holidays():
+    # Check if user is loggedin
+    if "loggedin" in session and session["loggedin"] == True:
+        # User is loggedin show them the home page
+        username = html.escape(session["username"])
+        # username = request.args.get("username")
+        records = user_info.get(username, [])
+        # print(args.xss)
+        # print(args)
+        return render_template(
+            "auth/holidays.html", username=username, records=records, title="holidays"
+        )
+    # User is not loggedin redirect to login page
+    return redirect(url_for("login"))
+
+
+@app.route("/salary")
+def salary():
+    # Check if user is loggedin
+    if "loggedin" in session and session["loggedin"] == True:
+        # User is loggedin show them the home page
+        username = html.escape(session["username"])
+        # username = request.args.get("username")
+        records = user_info.get(username, [])
+        # print(args.xss)
+        # print(args)
+        return render_template(
+            "auth/salary.html", username=username, records=records, title="salary"
         )
     # User is not loggedin redirect to login page
     return redirect(url_for("login"))

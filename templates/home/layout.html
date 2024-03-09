@@ -1,3 +1,11 @@
+<!--
+ * @Author: uceewl4 uceewl4@ucl.ac.uk
+ * @Date: 2024-03-05 11:10:24
+ * @LastEditors: uceewl4 uceewl4@ucl.ac.uk
+ * @LastEditTime: 2024-03-09 12:17:12
+ * @FilePath: /security/templates/home/layout.html
+ * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+-->
 <!DOCTYPE html>
 <html>
 
@@ -15,6 +23,9 @@
         <div>
             <h1>Website Title</h1>
             <a href="{{ url_for('home') }}"><i class="fas fa-home"></i>Home</a>
+            <a href="{{ url_for('checkin') }}"><i class="fas fa-sign-out-alt"></i>CheckIn</a>
+            <a href="{{ url_for('holidays') }}"><i class="fas fa-sign-out-alt"></i>Holidays</a>
+            <a href="{{ url_for('salary') }}"><i class="fas fa-sign-out-alt"></i>Salary</a>
             <a href="{{ url_for('profile') }}"><i class="fas fa-user-circle"></i>Profile</a>
             <a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i>Logout</a>
         </div>

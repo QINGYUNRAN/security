@@ -22,15 +22,15 @@ import re
 import mysql.connector
 import pandas as pd
 from file_checker import check_integrity
+
 app = Flask(__name__)
-app.secret_key = '1'
+app.secret_key = "1"
 
 
-employee_records = pd.read_csv("data/data/employees.csv").to_dict(orient='records')
-checkin_records = pd.read_csv("data/data/checkIn.csv").to_dict(orient='records')
-salary_records = pd.read_csv("data/data/salary.csv").to_dict(orient='records')
-holidays_records = pd.read_csv("data/data/holidays.csv").to_dict(orient='records')
-
+employee_records = pd.read_csv("data/employees.csv").to_dict(orient="records")
+checkin_records = pd.read_csv("data/checkIn.csv").to_dict(orient="records")
+salary_records = pd.read_csv("data/salary.csv").to_dict(orient="records")
+holidays_records = pd.read_csv("data/holidays.csv").to_dict(orient="records")
 
 
 parser = argparse.ArgumentParser(description="Argparse")
@@ -49,11 +49,10 @@ app = Flask(__name__)
 app.secret_key = "1"
 
 
-
 config = {
-    "user": "root",
+    "user": "security",
     "password": "mysql20011005",
-    "host": "127.0.0.1",  # my ifconfig ip address: 192.168.1.80
+    "host": "192.168.1.80",  # my ifconfig ip address: 192.168.1.80
     "database": "myemployees",
 }
 
@@ -92,7 +91,6 @@ user_info = {
         {"date": "2024-03-01", "attendance": False, "reason": "Sick leave"},
     ],
 }
-
 
 
 @app.route("/")

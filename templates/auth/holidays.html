@@ -1,0 +1,42 @@
+
+
+{% extends 'home/layout.html' %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<h2>Holidays records</h2>
+<p>Welcome back, {{ username }}!</p>
+
+<div class="employee-info-container">
+    {% for record in records %}
+    <div class="employee-card">
+        <div class="info-block">
+            <span class="info-title">Employee id:</span>
+            <span class="info-content"></span>
+        </div>
+        <div class="info-block">
+            <span class="info-title">Department id:</span>
+            <span class="info-content"></span>
+        </div>
+        <div class="info-block">
+            <span class="info-title">Start:</span>
+            <span class="info-content"></span>
+        </div>
+        <div class="info-block">
+            <span class="info-title">End:</span>
+            <span class="info-content"></span>
+        </div>
+        <div class="info-block">
+            <span class="info-title">Type:</span>
+            <span class="info-content"></span>
+        </div>
+        <div class="info-block">
+            <span class="info-title">Days:</span>
+            <span class="info-content"></span>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}

@@ -66,9 +66,9 @@ cursor = cnx.cursor()
 query = "SELECT * FROM employees"
 cursor.execute(query)
 rows = cursor.fetchall()
-for row in rows:
-    print(row)
-# 关闭游标和连接
+# for row in rows:
+#     print(row)
+# # 关闭游标和连接
 cursor.close()
 cnx.close()
 

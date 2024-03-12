@@ -9,19 +9,17 @@ from flask import (
     session,
     flash,
 )
-import re
 import html
 import argparse
-import time
 import pyotp
 from email.header import Header
 from email.mime.text import MIMEText
 from pynput import keyboard
 import scapy.all as scapy
 import re
-import mysql.connector
 import pandas as pd
 from file_checker import check_integrity
+import os
 app = Flask(__name__)
 app.secret_key = '1'
 
@@ -31,67 +29,16 @@ checkin_records = pd.read_csv("data/data/checkIn.csv").to_dict(orient='records')
 salary_records = pd.read_csv("data/data/salary.csv").to_dict(orient='records')
 holidays_records = pd.read_csv("data/data/holidays.csv").to_dict(orient='records')
 
+current_dir = os.path.dirname(__file__)
+account_file_path = os.path.join(current_dir, 'files/account.csv')
 
 
-parser = argparse.ArgumentParser(description="Argparse")
-parser.add_argument("--xss", default=False, type=bool, help="whether set xss attacks")
-parser.add_argument(
-    "--keylogger", default=False, type=bool, help="whether set key logger"
-)
-parser.add_argument(
-    "--filecheck", default=False, type=bool, help="whether check file integrity"
-)
-parser.add_argument(
-    "--wifiscanner", default=False, type=bool, help="whether scan wifi network"
-)
-args = parser.parse_args()
 app = Flask(__name__)
 app.secret_key = "1"
-
-
-
-config = {
-    "user": "root",
-    "password": "mysql20011005",
-    "host": "127.0.0.1",  # my ifconfig ip address: 192.168.1.80
-    "database": "myemployees",
-}
-
-# 建立连接
-cnx = mysql.connector.connect(**config)
-
-# 创建一个游标对象
-cursor = cnx.cursor()
-
-# 执行一个查询
-query = "SELECT * FROM employees"
-cursor.execute(query)
-rows = cursor.fetchall()
-for row in rows:
-    print(row)
-# 关闭游标和连接
-cursor.close()
-cnx.close()
-
-account = {
-    "username1": {
-        "username": "username1",
-        "password": "password1",
-        "email": "email1@example.com",
-    },
-    "username2": {
-        "username": "username2",
-        "password": "password2",
-        "email": "email2@example.com",
-    },
-    "ran": {"username": "ran", "password": "123", "email": "123@mail.com"},
-}
-user_info = {
-    "ran": [
-        {"date": "2024-02-29", "attendance": True, "reason": "Worked on project X"},
-        {"date": "2024-03-01", "attendance": False, "reason": "Sick leave"},
-    ],
-}
+app.config["XSS_ENABLED"] = False
+app.config["KEYLOGGER_ENABLED"] = False
+app.config["FILECHECK_ENABLED"] = False
+app.config["WIFISCANNER_ENABLED"] = False
 
 
 
@@ -119,17 +66,22 @@ def login():
     ):
         username = request.form["username"]
         password = request.form["password"]
-        user = account.get(username)
-        print(user, username)
-
-        if user and user["password"] == password:
+        if os.path.exists(account_file_path) and os.path.getsize(account_file_path) > 0:
+            df_accounts = pd.read_csv(account_file_path)
+            df_accounts = df_accounts.astype(str)
+        else:
+            flash("No accounts found. Please register first.", "warning")
+            return redirect(url_for("register"))
+        user = df_accounts[(df_accounts['username'] == username) & (df_accounts['password'] == password)]
+        if not user.empty:
             ver_code = totp.now()
             print(ver_code)  # time base for 30 seconds, after that it will exceeed
 
             # send to your email box
             from_addr = "2387324762@qq.com"
             email_password = "pdewxqltfshtebia"
-            to_addr = "2387324762@qq.com"
+            # to_addr = "2387324762@qq.com"
+            to_addr = user['email'].iloc[0]
             smtp_server = "smtp.qq.com"
 
             msg = MIMEText(
@@ -164,58 +116,26 @@ def login():
             flash("Correct password, please input your verification code", "warning")
             return redirect(url_for("verify"))
         else:
-            flash("Incorrect username/password!", "danger")
+            flash("Incorrect username/password!", "warning")
     return render_template("auth/login.html", title="Login")
 
 
 @app.route("/pythonlogin/verify", methods=["GET", "POST"])
 def verify():
-    # Check if "username" and "password" POST requests exist (user submitted form)
-    print(request.method)
     if (
         request.method == "POST"
-        # and "username" in request.form
-        # and "password" in request.form
         and "vercode" in request.form
     ):
         vercode = request.form["vercode"]
-        # print(type(vercode))
-        # print(ver_code)
-        # print(totp.verify(str(vercode)))
         if vercode == session["vercode"]:
             # 2FA email verification
-
-            # username = request.form["username"]
-            # user = account.get(username)
-            # print(user, username)
-
             session["loggedin"] = True
-            # session["username"] = username
-
-            print(session)
-            # flash("You have successfully registered!", "success")
             return redirect(url_for("home"))
         else:
-            flash("Incorrect verification code!", "danger")
+            session.pop("username", None)
+            flash("Incorrect verification code!", "warning")
     return render_template("auth/verify.html", title="Verify")
 
-
-# # template for xss attacks
-# @app.route("/home")
-# # def test():
-# #     search = request.args.get("search")
-# #     # search value can be anything like javascript code
-# #     return f"<h1>I am looking for {search}</h1>"
-# # http://127.0.0.1:5000/home?search=test  I'm looking for test
-# # inject javascript attack http://127.0.0.1:5000/home?search=test<img src=x onerror=alert(1)>
-# # how to solve it
-# def test():
-#     search = html.escape(request.args.get("search"))  # can now not be available to inject
-#     # search value can be anything like javascript code
-#     return f"<h1>I am looking for {search}</h1>"
-
-
-# can now work where javascript can be presented http://127.0.0.1:5000/home?search=test<img src=x onerror=confirm("dadad")>
 
 
 @app.route("/pythonlogin/register", methods=["GET", "POST"])
@@ -229,18 +149,18 @@ def register():
         username = request.form["username"]
         password = request.form["password"]
         email = request.form["email"]
-        if username in account:
-            flash("Account already exists!", "danger")
-        # elif not re.match(r"[^@]+@[^@]+\.[^@]+", email):
-        #     flash("Invalid email address!", "danger")
-        # elif not re.match(r"[A-Za-z0-9]+", username):
-        #     flash("Username must contain only characters and numbers!", "danger")
+        if os.path.exists(account_file_path) and os.path.getsize(account_file_path) > 0:
+            df_accounts = pd.read_csv(account_file_path)
+            df_accounts = df_accounts.astype(str)
         else:
-            account[username] = {
-                "username": username,
-                "password": password,
-                "email": email,
-            }
+            df_accounts = pd.DataFrame(columns=['username', 'password', 'email'])
+
+        if username in df_accounts['username'].values:
+            flash("Account already exists!", "warning")
+        else:
+            new_user_df = pd.DataFrame([{'username': username, 'password': password, 'email': email}])
+            df_accounts = pd.concat([df_accounts, new_user_df], ignore_index=True)
+            df_accounts.to_csv(account_file_path, index=False)
             return redirect(url_for("login"))
     return render_template("auth/register.html", title="Register")
 
@@ -248,27 +168,17 @@ def register():
 @app.route("/home")
 def home():
 
-    username = request.args.get("username")
-
     if "loggedin" in session and session["loggedin"] == True:
-        if args.xss == True:
+        if app.config["XSS_ENABLED"] == True:
             username = session["username"]
-            # username = request.args.get("username")
-            records = user_info.get(username, [])
-            # print(args.xss)
-            # print(args)
+            records = employee_records
             return f"{username}"
         else:
             username = html.escape(session["username"])
-            # username = request.args.get("username")
-            records = user_info.get(username, [])
-            # print(args.xss)
-            # print(args)
+            records = employee_records
             return render_template(
                 "home/home.html", username=username, records=records, title="Home"
             )
-
-    # User is not loggedin redirect to login page
     return redirect(url_for("login"))
 
 
@@ -276,65 +186,39 @@ def home():
 def profile():
     # Check if user is loggedin
     if "loggedin" in session and session["loggedin"] == True:
-        # User is loggedin show them the home page
-        return render_template(
-            "auth/profile.html", account=account[session["username"]], title="Profile"
-        )
-    # User is not loggedin redirect to login page
+        df_accounts = pd.read_csv(account_file_path)
+        df_accounts = df_accounts.astype(str)
+        account = df_accounts[df_accounts['username'] == session['username']]
+        if not account.empty:
+            account = account.iloc[0].to_dict()
+            return render_template("auth/profile.html", account=account, title="Profile")
     return redirect(url_for("login"))
 
 
 @app.route("/checkin")
 def checkin():
-    # Check if user is loggedin
     if "loggedin" in session and session["loggedin"] == True:
-        # User is loggedin show them the home page
         username = html.escape(session["username"])
-        # username = request.args.get("username")
-        records = user_info.get(username, [])
         records = checkin_records
-        # print(args.xss)
-        # print(args)
-        return render_template(
-            "auth/checkin.html", username=username, records=records, title="checkin"
-        )
-    # User is not loggedin redirect to login page
+        return render_template("home/checkin.html", username=username, records=records, title="checkin")
     return redirect(url_for("login"))
 
 
 @app.route("/holidays")
 def holidays():
-    # Check if user is loggedin
     if "loggedin" in session and session["loggedin"] == True:
-        # User is loggedin show them the home page
         username = html.escape(session["username"])
-        # username = request.args.get("username")
-        records = user_info.get(username, [])
         records = holidays_records
-        # print(args.xss)
-        # print(args)
-        return render_template(
-            "auth/holidays.html", username=username, records=records, title="holidays"
-        )
-    # User is not loggedin redirect to login page
+        return render_template("home/holidays.html", username=username, records=records, title="holidays")
     return redirect(url_for("login"))
 
 
 @app.route("/salary")
 def salary():
-    # Check if user is loggedin
     if "loggedin" in session and session["loggedin"] == True:
-        # User is loggedin show them the home page
         username = html.escape(session["username"])
-        # username = request.args.get("username")
-        records = user_info.get(username, [])
         records = salary_records
-        # print(args.xss)
-        # print(args)
-        return render_template(
-            "auth/salary.html", username=username, records=records, title="salary"
-        )
-    # User is not loggedin redirect to login page
+        return render_template("home/salary.html", username=username, records=records, title="salary")
     return redirect(url_for("login"))
 
 
@@ -356,16 +240,19 @@ def change_password():
         new_password = request.form["new_password"]
         repeat_new_password = request.form["repeat_new_password"]
         username = session["username"]
-        user = account.get(username)
-        if user and user["password"] == current_password:
+        accounts_df = pd.read_csv(account_file_path)
+        accounts_df = accounts_df.astype(str)
+        user_row = accounts_df.loc[accounts_df['username'] == username]
+
+        if not user_row.empty and user_row.iloc[0]['password'] == current_password:
             if new_password == repeat_new_password:
-                account[username]["password"] = new_password
-                flash("Password has been updated.", "success")
+                accounts_df.loc[accounts_df['username'] == username, 'password'] = new_password
+                accounts_df.to_csv(account_file_path, index=False)
                 return redirect(url_for("profile"))
             else:
-                flash("New passwords do not match.", "danger")
+                flash("New passwords do not match.", "warning")
         else:
-            flash("Current password is incorrect.", "danger")
+            flash("Current password is incorrect.", "warning")
 
     return render_template("home/change_password.html")
 
@@ -384,7 +271,20 @@ def keyPressed(key):  # automatically passing in key (the info)
             print("Error getting char")
 
 
+
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Argparse")
+    parser.add_argument("--xss", default=False, type=bool, help="whether set xss attacks")
+    parser.add_argument(
+        "--keylogger", default=False, type=bool, help="whether set key logger"
+    )
+    parser.add_argument(
+        "--filecheck", default=False, type=bool, help="whether check file integrity"
+    )
+    parser.add_argument(
+        "--wifiscanner", default=False, type=bool, help="whether scan wifi network"
+    )
+    args = parser.parse_args()
     if args.wifiscanner == True:
         ip_add_range_pattern = re.compile("^(?:[0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]*$")
         while True:
@@ -418,7 +318,11 @@ if __name__ == "__main__":
                 on_press=keyPressed
             )  # everytime the key is pressed, passed information to keypressed function
             listener.start()
-        app.run(debug=True)
+    app.config["XSS_ENABLED"] = args.xss
+    app.config["KEYLOGGER_ENABLED"] = args.keylogger
+    app.config["FILECHECK_ENABLED"] = args.filecheck
+    app.config["WIFISCANNER_ENABLED"] = args.wifiscanner
+    app.run(debug=True)
 
 
 # # 2FA in python

@@ -20,8 +20,6 @@ import re
 import pandas as pd
 from file_checker import check_integrity
 import os
-app = Flask(__name__)
-app.secret_key = '1'
 
 
 employee_records = pd.read_csv("data/data/employees.csv").to_dict(orient='records')
@@ -33,13 +31,13 @@ current_dir = os.path.dirname(__file__)
 account_file_path = os.path.join(current_dir, 'files/account.csv')
 
 
+
 app = Flask(__name__)
 app.secret_key = "1"
 app.config["XSS_ENABLED"] = False
 app.config["KEYLOGGER_ENABLED"] = False
 app.config["FILECHECK_ENABLED"] = False
 app.config["WIFISCANNER_ENABLED"] = False
-
 
 
 @app.route("/")

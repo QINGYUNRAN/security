@@ -27,11 +27,12 @@ from func.keyPressed import keyPressed
 # checkin_records = pd.read_csv("data/data/checkIn.csv").to_dict(orient='records')
 # salary_records = pd.read_csv("data/data/salary.csv").to_dict(orient='records')
 # holidays_records = pd.read_csv("data/data/holidays.csv").to_dict(orient='records')
-employee_records, checkin_records, salary_records, holidays_records = get_data_from_mysql()
+employee_records, checkin_records, salary_records, holidays_records = (
+    get_data_from_mysql()
+)
 
 current_dir = os.path.dirname(__file__)
-account_file_path = os.path.join(current_dir, 'files/account.csv')
-
+account_file_path = os.path.join(current_dir, "files/account.csv")
 
 
 app = Flask(__name__)
@@ -72,7 +73,10 @@ def login():
         else:
             flash("No accounts found. Please register first.", "warning")
             return redirect(url_for("register"))
-        user = df_accounts[(df_accounts['username'] == username) & (df_accounts['password'] == password)]
+        user = df_accounts[
+            (df_accounts["username"] == username)
+            & (df_accounts["password"] == password)
+        ]
         if not user.empty:
             ver_code = totp.now()
             print(ver_code)  # time base for 30 seconds, after that it will exceeed
@@ -81,7 +85,7 @@ def login():
             from_addr = "2387324762@qq.com"
             email_password = "pdewxqltfshtebia"
             # to_addr = "2387324762@qq.com"
-            to_addr = user['email'].iloc[0]
+            to_addr = user["email"].iloc[0]
             smtp_server = "smtp.qq.com"
 
             msg = MIMEText(
@@ -96,7 +100,7 @@ def login():
                 "utf-8",
             )
             msg["From"] = Header(from_addr)
-            msg["To"] = Header(from_addr)
+            msg["To"] = Header(to_addr)
             subject = f"Verification code message"
             msg["Subject"] = Header(subject, "utf-8")
 
@@ -122,10 +126,7 @@ def login():
 
 @app.route("/pythonlogin/verify", methods=["GET", "POST"])
 def verify():
-    if (
-        request.method == "POST"
-        and "vercode" in request.form
-    ):
+    if request.method == "POST" and "vercode" in request.form:
         vercode = request.form["vercode"]
         if vercode == session["vercode"]:
             # 2FA email verification
@@ -135,7 +136,6 @@ def verify():
             session.pop("username", None)
             flash("Incorrect verification code!", "warning")
     return render_template("auth/verify.html", title="Verify")
-
 
 
 @app.route("/pythonlogin/register", methods=["GET", "POST"])
@@ -153,12 +153,14 @@ def register():
             df_accounts = pd.read_csv(account_file_path)
             df_accounts = df_accounts.astype(str)
         else:
-            df_accounts = pd.DataFrame(columns=['username', 'password', 'email'])
+            df_accounts = pd.DataFrame(columns=["username", "password", "email"])
 
-        if username in df_accounts['username'].values:
+        if username in df_accounts["username"].values:
             flash("Account already exists!", "warning")
         else:
-            new_user_df = pd.DataFrame([{'username': username, 'password': password, 'email': email}])
+            new_user_df = pd.DataFrame(
+                [{"username": username, "password": password, "email": email}]
+            )
             df_accounts = pd.concat([df_accounts, new_user_df], ignore_index=True)
             df_accounts.to_csv(account_file_path, index=False)
             return redirect(url_for("login"))
@@ -188,10 +190,12 @@ def profile():
     if "loggedin" in session and session["loggedin"] == True:
         df_accounts = pd.read_csv(account_file_path)
         df_accounts = df_accounts.astype(str)
-        account = df_accounts[df_accounts['username'] == session['username']]
+        account = df_accounts[df_accounts["username"] == session["username"]]
         if not account.empty:
             account = account.iloc[0].to_dict()
-            return render_template("auth/profile.html", account=account, title="Profile")
+            return render_template(
+                "auth/profile.html", account=account, title="Profile"
+            )
     return redirect(url_for("login"))
 
 
@@ -200,7 +204,9 @@ def checkin():
     if "loggedin" in session and session["loggedin"] == True:
         username = html.escape(session["username"])
         records = checkin_records
-        return render_template("home/checkin.html", username=username, records=records, title="checkin")
+        return render_template(
+            "home/checkin.html", username=username, records=records, title="checkin"
+        )
     return redirect(url_for("login"))
 
 
@@ -209,7 +215,9 @@ def holidays():
     if "loggedin" in session and session["loggedin"] == True:
         username = html.escape(session["username"])
         records = holidays_records
-        return render_template("home/holidays.html", username=username, records=records, title="holidays")
+        return render_template(
+            "home/holidays.html", username=username, records=records, title="holidays"
+        )
     return redirect(url_for("login"))
 
 
@@ -218,7 +226,9 @@ def salary():
     if "loggedin" in session and session["loggedin"] == True:
         username = html.escape(session["username"])
         records = salary_records
-        return render_template("home/salary.html", username=username, records=records, title="salary")
+        return render_template(
+            "home/salary.html", username=username, records=records, title="salary"
+        )
     return redirect(url_for("login"))
 
 
@@ -242,11 +252,13 @@ def change_password():
         username = session["username"]
         accounts_df = pd.read_csv(account_file_path)
         accounts_df = accounts_df.astype(str)
-        user_row = accounts_df.loc[accounts_df['username'] == username]
+        user_row = accounts_df.loc[accounts_df["username"] == username]
 
-        if not user_row.empty and user_row.iloc[0]['password'] == current_password:
+        if not user_row.empty and user_row.iloc[0]["password"] == current_password:
             if new_password == repeat_new_password:
-                accounts_df.loc[accounts_df['username'] == username, 'password'] = new_password
+                accounts_df.loc[accounts_df["username"] == username, "password"] = (
+                    new_password
+                )
                 accounts_df.to_csv(account_file_path, index=False)
                 return redirect(url_for("profile"))
             else:
@@ -257,11 +269,11 @@ def change_password():
     return render_template("home/change_password.html")
 
 
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Argparse")
-    parser.add_argument("--xss", default=False, type=bool, help="whether set xss attacks")
+    parser.add_argument(
+        "--xss", default=False, type=bool, help="whether set xss attacks"
+    )
     parser.add_argument(
         "--keylogger", default=False, type=bool, help="whether set key logger"
     )

@@ -20,12 +20,14 @@ import re
 import pandas as pd
 from file_checker import check_integrity
 import os
+from func.database import get_data_from_mysql
+from func.keyPressed import keyPressed
 
-
-employee_records = pd.read_csv("data/data/employees.csv").to_dict(orient='records')
-checkin_records = pd.read_csv("data/data/checkIn.csv").to_dict(orient='records')
-salary_records = pd.read_csv("data/data/salary.csv").to_dict(orient='records')
-holidays_records = pd.read_csv("data/data/holidays.csv").to_dict(orient='records')
+# employee_records = pd.read_csv("data/data/employees.csv").to_dict(orient='records')
+# checkin_records = pd.read_csv("data/data/checkIn.csv").to_dict(orient='records')
+# salary_records = pd.read_csv("data/data/salary.csv").to_dict(orient='records')
+# holidays_records = pd.read_csv("data/data/holidays.csv").to_dict(orient='records')
+employee_records, checkin_records, salary_records, holidays_records = get_data_from_mysql()
 
 current_dir = os.path.dirname(__file__)
 account_file_path = os.path.join(current_dir, 'files/account.csv')
@@ -254,19 +256,6 @@ def change_password():
 
     return render_template("home/change_password.html")
 
-
-def keyPressed(key):  # automatically passing in key (the info)
-    print(str(key))
-    # create the file and log the key input
-    # 'a' means appending
-    with open("keyfile.txt", "a") as logKey:
-        try:
-            char = key.char  # convert into char
-            print(char)
-            print(len(char))
-            logKey.write(char)
-        except:
-            print("Error getting char")
 
 
 

@@ -1,5 +1,5 @@
 import mysql.connector
-
+import pandas as pd
 
 def get_data_from_mysql():
     config = {
@@ -9,21 +9,21 @@ def get_data_from_mysql():
         "database": "myemployees",
     }
 
-    # 建立连接
     cnx = mysql.connector.connect(**config)
-
-    # 创建一个游标对象
     cursor = cnx.cursor()
+    table_names = ['employees', 'checkIn', 'salary', 'holidays']
+    dataframes = {}
 
-    # 执行一个查询
-    query = "SELECT * FROM employees"
-    cursor.execute(query)
-    rows = cursor.fetchall()
-    for row in rows:
-        print(row)
-    # 关闭游标和连接
+    for table_name in table_names:
+        query = f"SELECT * FROM {table_name}"
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        column_names = [i[0] for i in cursor.description]
+        dataframes[table_name] = pd.DataFrame(rows, columns=column_names)
     cursor.close()
     cnx.close()
+    return (dataframes['employees'], dataframes['checkIn'], dataframes['salary'], dataframes['holidays'])
+
 
 def main():
     get_data_from_mysql()

@@ -8,6 +8,7 @@ from flask import (
     url_for,
     session,
     flash,
+    jsonify,
 )
 import html
 import argparse
@@ -22,14 +23,15 @@ from file_checker import check_integrity
 import os
 from func.database import get_data_from_mysql
 from func.keyPressed import keyPressed
-
-# employee_records = pd.read_csv("data/data/employees.csv").to_dict(orient='records')
-# checkin_records = pd.read_csv("data/data/checkIn.csv").to_dict(orient='records')
-# salary_records = pd.read_csv("data/data/salary.csv").to_dict(orient='records')
-# holidays_records = pd.read_csv("data/data/holidays.csv").to_dict(orient='records')
-employee_records, checkin_records, salary_records, holidays_records = (
-    get_data_from_mysql()
-)
+from func.check_ip import check_ip_limit
+import time
+employee_records = pd.read_csv("data/data/employees.csv").to_dict(orient='records')
+checkin_records = pd.read_csv("data/data/checkIn.csv").to_dict(orient='records')
+salary_records = pd.read_csv("data/data/salary.csv").to_dict(orient='records')
+holidays_records = pd.read_csv("data/data/holidays.csv").to_dict(orient='records')
+# employee_records, checkin_records, salary_records, holidays_records = (
+#     get_data_from_mysql()
+# )
 
 current_dir = os.path.dirname(__file__)
 account_file_path = os.path.join(current_dir, "files/account.csv")
@@ -43,7 +45,37 @@ app.config["FILECHECK_ENABLED"] = False
 app.config["WIFISCANNER_ENABLED"] = False
 
 
-@app.route("/")
+ip_access_records = {}
+banned_ips = {}
+
+def rate_limiter(func):
+    def wrapper(*args, **kwargs):
+        ip_address = request.remote_addr
+        current_time = time.time()
+
+        if ip_address in banned_ips and current_time < banned_ips[ip_address]:
+            return jsonify({"error": "Access denied"}), 403
+
+        record = ip_access_records.get(ip_address, {"last_access": 0, "attempt_count": 0})
+        time_since_last_access = current_time - record["last_access"]
+        if time_since_last_access < 10:
+            record["attempt_count"] += 1
+            if record["attempt_count"] > 20:  # 超过20次尝试，禁止一个小时
+                banned_ips[ip_address] = current_time + 3600  # 禁止一小时
+                return jsonify({"error": "Too many requests, access denied for 1 hour"}), 429
+            else:
+                return jsonify({"error": "Too many requests"}), 429
+        else:
+            record["last_access"] = current_time
+            record["attempt_count"] = 1
+
+        ip_access_records[ip_address] = record
+        return func(*args, **kwargs)
+    return wrapper
+
+
+@app.route('/')
+@rate_limiter
 def index():
     session.clear()
     return redirect(url_for("login"))
@@ -58,8 +90,10 @@ totp = pyotp.TOTP(key)
 
 @app.route("/pythonlogin/", methods=["GET", "POST"])
 def login():
-    # Check if "username" and "password" POST requests exist (user submitted form)
-    print(request.method)
+    ip_address = request.remote_addr
+    if not check_ip_limit(ip_address):
+        flash("Too many login attempts. Please try again later.", "warning")
+        return render_template("auth/login.html", title="Login")
     if (
         request.method == "POST"
         and "username" in request.form

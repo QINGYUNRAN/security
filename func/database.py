@@ -3,10 +3,16 @@ import pandas as pd
 
 
 def get_data_from_mysql():
+    # config = {
+    #     "user": "security",
+    #     "password": "mysql20011005",
+    #     "host": "192.168.1.80",  # my ifconfig ip address: 192.168.1.80
+    #     "database": "myemployees",
+    # }
     config = {
-        "user": "security",
+        "user": "root",
         "password": "mysql20011005",
-        "host": "192.168.1.80",  # my ifconfig ip address: 192.168.1.80
+        "host": "127.0.0.1",  # my ifconfig ip address: 192.168.1.80
         "database": "myemployees",
     }
 

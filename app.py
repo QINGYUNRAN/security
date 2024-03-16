@@ -25,13 +25,14 @@ from func.database import get_data_from_mysql
 from func.keyPressed import keyPressed
 from func.check_ip import check_ip_limit
 import time
-employee_records = pd.read_csv("data/data/employees.csv").to_dict(orient='records')
-checkin_records = pd.read_csv("data/data/checkIn.csv").to_dict(orient='records')
-salary_records = pd.read_csv("data/data/salary.csv").to_dict(orient='records')
-holidays_records = pd.read_csv("data/data/holidays.csv").to_dict(orient='records')
-# employee_records, checkin_records, salary_records, holidays_records = (
-#     get_data_from_mysql()
-# )
+
+# employee_records = pd.read_csv("data/data/employees.csv").to_dict(orient='records')
+# checkin_records = pd.read_csv("data/data/checkIn.csv").to_dict(orient='records')
+# salary_records = pd.read_csv("data/data/salary.csv").to_dict(orient='records')
+# holidays_records = pd.read_csv("data/data/holidays.csv").to_dict(orient='records')
+employee_records, checkin_records, salary_records, holidays_records = (
+    get_data_from_mysql()
+)
 
 current_dir = os.path.dirname(__file__)
 account_file_path = os.path.join(current_dir, "files/account.csv")
@@ -48,6 +49,7 @@ app.config["WIFISCANNER_ENABLED"] = False
 ip_access_records = {}
 banned_ips = {}
 
+
 def rate_limiter(func):
     def wrapper(*args, **kwargs):
         ip_address = request.remote_addr
@@ -56,13 +58,18 @@ def rate_limiter(func):
         if ip_address in banned_ips and current_time < banned_ips[ip_address]:
             return jsonify({"error": "Access denied"}), 403
 
-        record = ip_access_records.get(ip_address, {"last_access": 0, "attempt_count": 0})
+        record = ip_access_records.get(
+            ip_address, {"last_access": 0, "attempt_count": 0}
+        )
         time_since_last_access = current_time - record["last_access"]
         if time_since_last_access < 10:
             record["attempt_count"] += 1
             if record["attempt_count"] > 20:  # 超过20次尝试，禁止一个小时
                 banned_ips[ip_address] = current_time + 3600  # 禁止一小时
-                return jsonify({"error": "Too many requests, access denied for 1 hour"}), 429
+                return (
+                    jsonify({"error": "Too many requests, access denied for 1 hour"}),
+                    429,
+                )
             else:
                 return jsonify({"error": "Too many requests"}), 429
         else:
@@ -71,10 +78,11 @@ def rate_limiter(func):
 
         ip_access_records[ip_address] = record
         return func(*args, **kwargs)
+
     return wrapper
 
 
-@app.route('/')
+@app.route("/")
 @rate_limiter
 def index():
     session.clear()
@@ -355,7 +363,9 @@ if __name__ == "__main__":
     app.config["KEYLOGGER_ENABLED"] = args.keylogger
     app.config["FILECHECK_ENABLED"] = args.filecheck
     app.config["WIFISCANNER_ENABLED"] = args.wifiscanner
-    app.run(debug=True)
+    app.run(ssl_context=("cert.pem", "key.pem"), debug=True)  # dummy: adhoc
+
+    # create own certificate
 
 
 # # 2FA in python

@@ -19,12 +19,15 @@ from pynput import keyboard
 import scapy.all as scapy
 import re
 import pandas as pd
-from file_checker import check_integrity
+from attacks.file_checker import check_integrity
 import os
 from func.database import get_data_from_mysql
 from func.keyPressed import keyPressed
 from func.check_ip import check_ip_limit
 import time
+from attacks.ml_detector.utils import load_data, process_wireshark
+from attacks.ml_detector.attack_detector import AttackDetector
+
 
 # employee_records = pd.read_csv("data/data/employees.csv").to_dict(orient='records')
 # checkin_records = pd.read_csv("data/data/checkIn.csv").to_dict(orient='records')
@@ -44,6 +47,7 @@ app.config["XSS_ENABLED"] = False
 app.config["KEYLOGGER_ENABLED"] = False
 app.config["FILECHECK_ENABLED"] = False
 app.config["WIFISCANNER_ENABLED"] = False
+app.config["MLDETECTOR_ENABLED"] = False
 
 
 ip_access_records = {}
@@ -325,6 +329,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--wifiscanner", default=False, type=bool, help="whether scan wifi network"
     )
+    parser.add_argument(
+        "--mldetector", default=False, type=bool, help="whether use ml detector"
+    )
+    parser.add_argument(
+        "--train", default=False, type=bool, help="whether train the model"
+    )
     args = parser.parse_args()
     if args.wifiscanner == True:
         ip_add_range_pattern = re.compile("^(?:[0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]*$")
@@ -352,6 +362,20 @@ if __name__ == "__main__":
             print(f"The integrity of file {index} is impaired.")
         else:
             print("All files are integral.")
+    elif args.mldetector == True:
+        detector = AttackDetector()
+        if args.train == True:
+            # data preprocessing
+            X, y, preprocessor = load_data("attacks/ml_detector/network_traffic.csv")
+            # train
+            detector.train(X, y, preprocessor)
+
+        # test
+        for i in os.listdir("attacks/ml_detector/output"):
+            print("\nReading Wireshark output file...")
+            file_path = os.path.expanduser(f"attacks/ml_detector/output/{i}")
+            wireshark_df = process_wireshark(file_path)
+            detector.test(wireshark_df)
 
     else:
         if args.keylogger == True:
@@ -363,7 +387,11 @@ if __name__ == "__main__":
     app.config["KEYLOGGER_ENABLED"] = args.keylogger
     app.config["FILECHECK_ENABLED"] = args.filecheck
     app.config["WIFISCANNER_ENABLED"] = args.wifiscanner
-    app.run(ssl_context=("cert.pem", "key.pem"), debug=True)  # dummy: adhoc
+    app.config["MLDETECTOR_ENABLED"] = args.mldetector
+    app.run(
+        ssl_context=("attacks/https_cert/cert.pem", "attacks/https_cert/key.pem"),
+        debug=True,
+    )  # dummy: adhoc
 
     # create own certificate
 

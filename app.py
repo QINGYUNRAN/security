@@ -329,9 +329,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--wifiscanner", default=False, type=bool, help="whether scan wifi network"
     )
-    parser.add_argument(
-        "--mldetector", default=False, type=bool, help="whether use ml detector"
-    )
+    parser.add_argument("--mldetector", default=None, type=str, help="SVM,RF,LR,KNN")
     parser.add_argument(
         "--train", default=False, type=bool, help="whether train the model"
     )
@@ -362,8 +360,8 @@ if __name__ == "__main__":
             print(f"The integrity of file {index} is impaired.")
         else:
             print("All files are integral.")
-    elif args.mldetector == True:
-        detector = AttackDetector()
+    elif args.mldetector != None:
+        detector = AttackDetector(args.mldetector)
         if args.train == True:
             # data preprocessing
             X, y, preprocessor = load_data("attacks/ml_detector/network_traffic.csv")

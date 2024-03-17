@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
+from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.impute import SimpleImputer
 from sklearn.compose import ColumnTransformer
@@ -19,19 +21,28 @@ from joblib import load
 from collections import Counter
 import os
 import matplotlib.pyplot as plt
+from sklearn.svm import SVC
 
 
 class AttackDetector:
+    def __init__(self, method):
+        self.method = method
+        if method == "RF":
+            self.clf = RandomForestClassifier(
+                n_estimators=100, random_state=42, class_weight="balanced"
+            )
+        elif method == "SVM":
+            self.clf = SVC(kernel="rbf")
+        elif method == "LR":
+            self.clf = LogisticRegression(solver="liblinear")
+        elif method == "KNN":
+            self.clf = KNeighborsClassifier(n_neighbors=3)
+
     def train(self, X, y, preprocessor):
         pipeline = Pipeline(
             steps=[
                 ("preprocessor", preprocessor),
-                (
-                    "classifier",
-                    RandomForestClassifier(
-                        n_estimators=100, random_state=42, class_weight="balanced"
-                    ),
-                ),
+                ("classifier", self.clf),
             ]
         )
 
@@ -46,7 +57,7 @@ class AttackDetector:
         pipeline.fit(X_train, y_train)
 
         # Saving the model to disk
-        model_filename = "attacks/ml_detector/trained_model.joblib"
+        model_filename = f"attacks/ml_detector/trained_model_{self.method}.joblib"
         dump(pipeline, model_filename)
         print(f"Model saved to {model_filename}.")
 
@@ -64,12 +75,12 @@ class AttackDetector:
             confusion_matrix=cm, display_labels=pipeline.classes_
         )
         disp.plot(ax=axes)
-        fig.savefig("attacks/ml_detector/cm.png")
+        fig.savefig(f"attacks/ml_detector/cm_{self.method}.png")
         plt.close()
         print("Model training and evaluation complete.")
 
     def test(self, data):
-        model = load("attacks/ml_detector/trained_model.joblib")
+        model = load(f"attacks/ml_detector/trained_model_{self.method}.joblib")
         if data.empty:
             print("No valid data found in Wireshark output.")
         else:
@@ -85,9 +96,9 @@ class AttackDetector:
 
             # Define thresholds for each attack type
             attack_thresholds = {
-                "UDP Flood": 100,
-                "ICMP Flood": 100,
-                "TCP Flood": 100,  # Example threshold, adjust based on your criteria
+                "UDP Flood": 10,
+                "ICMP Flood": 10,
+                "TCP Flood": 10,  # Example threshold, adjust based on your criteria
             }
 
             # Alert for each attack type based on its threshold

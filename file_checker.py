@@ -1,28 +1,25 @@
 import os
 import hashlib
+import csv
 
 
-def calculate_sha256(file_path):
+def calculate_sha256(data):
     sha256_hash = hashlib.sha256()
-    with open(file_path, "rb") as f:
-        while True:
-            data = f.read(65536)
-            if not data:
-                break
-            sha256_hash.update(data)
+    sha256_hash.update(data.encode('utf-8'))
     return sha256_hash.hexdigest()
 
-
-def check_integrity(directory_path):
+def check_integrity(file_path):
     calculated_hash_all = []
-    if not os.path.exists(directory_path) or not os.path.isdir(directory_path):
-        print(f"Directory '{directory_path}' does not exist.")
-        return
-    for root, dirs, files in os.walk(directory_path):
-        for file_name in files:
-            file_path = os.path.join(root, file_name)
-            calculated_hash = calculate_sha256(file_path)
-            print(f"File: {file_path}\nSHA-256 Hash; {calculated_hash}")
+    if not os.path.exists(file_path):
+        print(f"File '{file_path}' does not exist.")
+        return None
+    with open(file_path, 'r', newline='') as file:
+        reader = csv.reader(file)
+        next(reader)
+        for row in reader:
+            username, password, email = row
+            calculated_hash = calculate_sha256(f"{username},{password},{email}")
+            # print(f"Username: {username}, Password: {password}, Email: {email}, Hash: {calculated_hash}")
             calculated_hash_all.append(calculated_hash)
     return calculated_hash_all
 

@@ -20,7 +20,8 @@ import scapy.all as scapy
 import re
 import pandas as pd
 from file_checker import check_integrity
-import os
+import os, csv
+from func.meddle_password import meddle
 from func.database import get_data_from_mysql
 from func.keyPressed import keyPressed
 from func.check_ip import check_ip_limit
@@ -60,8 +61,8 @@ def rate_limiter(func):
         time_since_last_access = current_time - record["last_access"]
         if time_since_last_access < 10:
             record["attempt_count"] += 1
-            if record["attempt_count"] > 20:  # 超过20次尝试，禁止一个小时
-                banned_ips[ip_address] = current_time + 3600  # 禁止一小时
+            if record["attempt_count"] > 20:
+                banned_ips[ip_address] = current_time + 3600
                 return jsonify({"error": "Too many requests, access denied for 1 hour"}), 429
             else:
                 return jsonify({"error": "Too many requests"}), 429
@@ -167,7 +168,7 @@ def verify():
             session["loggedin"] = True
             return redirect(url_for("home"))
         else:
-            session.pop("username", None)
+            session["loggedin"] = False
             flash("Incorrect verification code!", "warning")
     return render_template("auth/verify.html", title="Verify")
 
@@ -330,27 +331,31 @@ if __name__ == "__main__":
         arp_result = scapy.arping(ip_add_range_entered)
 
     # file check may need to combine with database
-    elif args.filecheck == True:
-        directory_to_check = input("Enter directory path to check integrity:")
-        original_all = check_integrity(directory_to_check)
-        if str(input("Check the integrity of the files?")) == "Y":
-            new_all = check_integrity(directory_to_check)
-        flag = True
-        for index, i in enumerate(original_all):
-            if i != new_all[index]:
-                flag = False
-                break
-        if flag == False:
-            print(f"The integrity of file {index} is impaired.")
-        else:
-            print("All files are integral.")
+    if args.filecheck == True:
+        csv_file = input("Enter the path to the CSV file: ")
+        original_hash_all = check_integrity(csv_file)
+        if original_hash_all:
+            print("Original file checked.")
 
-    else:
-        if args.keylogger == True:
-            listener = keyboard.Listener(
-                on_press=keyPressed
-            )  # everytime the key is pressed, passed information to keypressed function
-            listener.start()
+        meddle_file = input("Do you want to meddle with the file? (Y/N): ")
+        if meddle_file.upper() == 'Y':
+            meddle(csv_file)
+
+        with open(csv_file, 'r', newline='') as file:
+            reader = csv.reader(file)
+            next(reader)
+            modified_hash_all = check_integrity(csv_file)
+            if original_hash_all and modified_hash_all:
+                for orig_hash, mod_hash, row in zip(original_hash_all, modified_hash_all, reader):
+                    if orig_hash != mod_hash:
+                        print(f"User '{row[0]}' with email '{row[2]}' has been modified.")
+
+    if args.keylogger == True:
+        listener = keyboard.Listener(
+            on_press=keyPressed
+        )  # everytime the key is pressed, passed information to keypressed function
+        listener.start()
+
     app.config["XSS_ENABLED"] = args.xss
     app.config["KEYLOGGER_ENABLED"] = args.keylogger
     app.config["FILECHECK_ENABLED"] = args.filecheck

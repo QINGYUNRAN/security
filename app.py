@@ -19,20 +19,24 @@ from pynput import keyboard
 import scapy.all as scapy
 import re
 import pandas as pd
-from file_checker import check_integrity
 import os, csv
 from func.meddle_password import meddle
+from attacks.file_checker import check_integrity
 from func.database import get_data_from_mysql
 from func.keyPressed import keyPressed
 from func.check_ip import check_ip_limit
 import time
-employee_records = pd.read_csv("data/data/employees.csv").to_dict(orient='records')
-checkin_records = pd.read_csv("data/data/checkIn.csv").to_dict(orient='records')
-salary_records = pd.read_csv("data/data/salary.csv").to_dict(orient='records')
-holidays_records = pd.read_csv("data/data/holidays.csv").to_dict(orient='records')
-# employee_records, checkin_records, salary_records, holidays_records = (
-#     get_data_from_mysql()
-# )
+from attacks.ml_detector.utils import load_data, process_wireshark
+from attacks.ml_detector.attack_detector import AttackDetector
+
+
+# employee_records = pd.read_csv("data/data/employees.csv").to_dict(orient='records')
+# checkin_records = pd.read_csv("data/data/checkIn.csv").to_dict(orient='records')
+# salary_records = pd.read_csv("data/data/salary.csv").to_dict(orient='records')
+# holidays_records = pd.read_csv("data/data/holidays.csv").to_dict(orient='records')
+employee_records, checkin_records, salary_records, holidays_records = (
+    get_data_from_mysql()
+)
 
 current_dir = os.path.dirname(__file__)
 account_file_path = os.path.join(current_dir, "files/account.csv")
@@ -44,10 +48,12 @@ app.config["XSS_ENABLED"] = False
 app.config["KEYLOGGER_ENABLED"] = False
 app.config["FILECHECK_ENABLED"] = False
 app.config["WIFISCANNER_ENABLED"] = False
+app.config["MLDETECTOR_ENABLED"] = False
 
 
 ip_access_records = {}
 banned_ips = {}
+
 
 def rate_limiter(func):
     def wrapper(*args, **kwargs):
@@ -57,13 +63,18 @@ def rate_limiter(func):
         if ip_address in banned_ips and current_time < banned_ips[ip_address]:
             return jsonify({"error": "Access denied"}), 403
 
-        record = ip_access_records.get(ip_address, {"last_access": 0, "attempt_count": 0})
+        record = ip_access_records.get(
+            ip_address, {"last_access": 0, "attempt_count": 0}
+        )
         time_since_last_access = current_time - record["last_access"]
         if time_since_last_access < 10:
             record["attempt_count"] += 1
-            if record["attempt_count"] > 20:
-                banned_ips[ip_address] = current_time + 3600
-                return jsonify({"error": "Too many requests, access denied for 1 hour"}), 429
+            if record["attempt_count"] > 20:  # 超过20次尝试，禁止一个小时
+                banned_ips[ip_address] = current_time + 3600  # 禁止一小时
+                return (
+                    jsonify({"error": "Too many requests, access denied for 1 hour"}),
+                    429,
+                )
             else:
                 return jsonify({"error": "Too many requests"}), 429
         else:
@@ -72,10 +83,11 @@ def rate_limiter(func):
 
         ip_access_records[ip_address] = record
         return func(*args, **kwargs)
+
     return wrapper
 
 
-@app.route('/')
+@app.route("/")
 @rate_limiter
 def index():
     session.clear()
@@ -318,6 +330,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--wifiscanner", default=False, type=bool, help="whether scan wifi network"
     )
+    parser.add_argument("--mldetector", default=None, type=str, help="SVM,RF,LR,KNN")
+    parser.add_argument(
+        "--train", default=False, type=bool, help="whether train the model"
+    )
     args = parser.parse_args()
     if args.wifiscanner == True:
         ip_add_range_pattern = re.compile("^(?:[0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]*$")
@@ -331,6 +347,7 @@ if __name__ == "__main__":
         arp_result = scapy.arping(ip_add_range_entered)
 
     # file check may need to combine with database
+
     if args.filecheck == True:
         csv_file = input("Enter the path to the CSV file: ")
         original_hash_all = check_integrity(csv_file)
@@ -355,12 +372,32 @@ if __name__ == "__main__":
             on_press=keyPressed
         )  # everytime the key is pressed, passed information to keypressed function
         listener.start()
+    elif args.mldetector != None:
+        detector = AttackDetector(args.mldetector)
+        if args.train == True:
+            # data preprocessing
+            X, y, preprocessor = load_data("attacks/ml_detector/network_traffic.csv")
+            # train
+            detector.train(X, y, preprocessor)
+
+        # test
+        for i in os.listdir("attacks/ml_detector/output"):
+            print("\nReading Wireshark output file...")
+            file_path = os.path.expanduser(f"attacks/ml_detector/output/{i}")
+            wireshark_df = process_wireshark(file_path)
+            detector.test(wireshark_df)
 
     app.config["XSS_ENABLED"] = args.xss
     app.config["KEYLOGGER_ENABLED"] = args.keylogger
     app.config["FILECHECK_ENABLED"] = args.filecheck
     app.config["WIFISCANNER_ENABLED"] = args.wifiscanner
-    app.run(debug=True)
+    app.config["MLDETECTOR_ENABLED"] = args.mldetector
+    app.run(
+        ssl_context=("attacks/https_cert/cert.pem", "attacks/https_cert/key.pem"),
+        debug=True,
+    )  # dummy: adhoc
+
+    # create own certificate
 
 
 # # 2FA in python

@@ -18,6 +18,7 @@ from email.mime.text import MIMEText
 from pynput import keyboard
 import scapy.all as scapy
 import re
+import hashlib
 import pandas as pd
 import os, csv
 from func.meddle_password import meddle
@@ -30,13 +31,13 @@ from attacks.ml_detector.utils import load_data, process_wireshark
 from attacks.ml_detector.attack_detector import AttackDetector
 
 
-# employee_records = pd.read_csv("data/data/employees.csv").to_dict(orient='records')
-# checkin_records = pd.read_csv("data/data/checkIn.csv").to_dict(orient='records')
-# salary_records = pd.read_csv("data/data/salary.csv").to_dict(orient='records')
-# holidays_records = pd.read_csv("data/data/holidays.csv").to_dict(orient='records')
-employee_records, checkin_records, salary_records, holidays_records = (
-    get_data_from_mysql()
-)
+employee_records = pd.read_csv("data/data/employees.csv").to_dict(orient='records')
+checkin_records = pd.read_csv("data/data/checkIn.csv").to_dict(orient='records')
+salary_records = pd.read_csv("data/data/salary.csv").to_dict(orient='records')
+holidays_records = pd.read_csv("data/data/holidays.csv").to_dict(orient='records')
+# employee_records, checkin_records, salary_records, holidays_records = (
+#     get_data_from_mysql()
+# )
 
 current_dir = os.path.dirname(__file__)
 account_file_path = os.path.join(current_dir, "files/account.csv")
@@ -114,6 +115,8 @@ def login():
     ):
         username = request.form["username"]
         password = request.form["password"]
+        hashed_password = hashlib.md5(password.encode()).hexdigest()
+
         if os.path.exists(account_file_path) and os.path.getsize(account_file_path) > 0:
             df_accounts = pd.read_csv(account_file_path)
             df_accounts = df_accounts.astype(str)
@@ -122,7 +125,7 @@ def login():
             return redirect(url_for("register"))
         user = df_accounts[
             (df_accounts["username"] == username)
-            & (df_accounts["password"] == password)
+            & (df_accounts["password"] == hashed_password)
         ]
         if not user.empty:
             ver_code = totp.now()
@@ -196,6 +199,8 @@ def register():
         username = request.form["username"]
         password = request.form["password"]
         email = request.form["email"]
+        # Hash the password using MD5
+        hashed_password = hashlib.md5(password.encode()).hexdigest()
         if os.path.exists(account_file_path) and os.path.getsize(account_file_path) > 0:
             df_accounts = pd.read_csv(account_file_path)
             df_accounts = df_accounts.astype(str)
@@ -206,7 +211,7 @@ def register():
             flash("Account already exists!", "warning")
         else:
             new_user_df = pd.DataFrame(
-                [{"username": username, "password": password, "email": email}]
+                [{"username": username, "password": hashed_password, "email": email}]
             )
             df_accounts = pd.concat([df_accounts, new_user_df], ignore_index=True)
             df_accounts.to_csv(account_file_path, index=False)

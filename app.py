@@ -304,12 +304,15 @@ def change_password():
         username = session["username"]
         accounts_df = pd.read_csv(account_file_path)
         accounts_df = accounts_df.astype(str)
+        hashed_current_password = hashlib.md5(current_password.encode()).hexdigest()
+
         user_row = accounts_df.loc[accounts_df["username"] == username]
 
-        if not user_row.empty and user_row.iloc[0]["password"] == current_password:
+        if not user_row.empty and user_row.iloc[0]["password"] == hashed_current_password:
             if new_password == repeat_new_password:
+                hashed_new_password = hashlib.md5(new_password.encode()).hexdigest()
                 accounts_df.loc[accounts_df["username"] == username, "password"] = (
-                    new_password
+                    hashed_new_password
                 )
                 accounts_df.to_csv(account_file_path, index=False)
                 return redirect(url_for("profile"))

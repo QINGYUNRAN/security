@@ -1,5 +1,5 @@
 # security
-UCL ELEC0138: Security and Privacy
+UCL ELEC0138: Security and Privacy (Group C Final Assignment)
 
 
 

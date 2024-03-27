@@ -184,7 +184,7 @@ sudo apt install openssh-client
 sudo service ssh start
 sudo hydra -l root -P /usr/share/wordlists/metasplpoit/unix_passwords.txt ip_address ssh -t 4 -V
 ```
-<!-- sudo hydra -l root -P /usr/share/wordlists/metasplpoit/unix_passwords.txt 127.0.0.1 ssh -t 4 -V --> -->
+<!-- sudo hydra -l root -P /usr/share/wordlists/metasplpoit/unix_passwords.txt 127.0.0.1 ssh -t 4 -V --> 
 <!-- or 192.168.64.3 -->
 
 To perform network flooding towards certain devices, run the command on Ubuntu virtual machine:

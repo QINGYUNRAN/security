@@ -3,6 +3,14 @@ import pandas as pd
 
 
 def get_data_from_mysql():
+    """
+        Fetches data from specified MySQL tables and returns them as dictionaries.
+
+        Configurations for database connection can be adjusted within the function.
+
+        Returns:
+        - tuple: A tuple containing dictionaries of records from the 'employees', 'checkIn', 'salary', and 'holidays' tables.
+    """
     # config = {
     #     "user": "security",
     #     "password": "mysql20011005",

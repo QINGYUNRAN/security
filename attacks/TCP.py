@@ -8,6 +8,16 @@ pack = int(input('[+] Packet/s:'))
 thread = int(input('[+] Threads:'))
 
 def start():
+    """
+        Conducts a basic Denial-of-Service (DoS) attack on a specified target using TCP packets.
+
+        Behavior:
+        - Attempts to connect to the target IP and port, then sends a sequence of randomly generated packets.
+        - Continuously sends packets in the specified amount per connection attempt.
+        - Tracks and prints the number of connection attempts made to the target.
+        - Closes the socket and prints a message upon encountering an error.
+
+    """
     hh = random._urandom(10)
     xx = int(0)
     while True:

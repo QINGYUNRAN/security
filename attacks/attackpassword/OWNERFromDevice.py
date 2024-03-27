@@ -4,6 +4,14 @@ from Crypto.PublicKey import RSA
 import json
 
 def getBroadcastPayload():
+    """
+        Generates a payload for broadcasting, including a newly generated RSA public key.
+
+        Returns:
+        - bytes: A byte array representing the fixed header, JSON payload with RSA public key, and
+          dynamically calculated CRC32 checksum. The payload size and a random sequence number are
+          embedded within the header.
+    """
     key=RSA.generate(2048).publickey().exportKey('PEM')
     payload={"params":{"rsa_key": key.decode('utf-8')}}
     JSONPayload=json.dumps(payload,separators=(',', ':'))

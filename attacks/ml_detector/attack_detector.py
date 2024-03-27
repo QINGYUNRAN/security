@@ -25,7 +25,19 @@ from sklearn.svm import SVC
 
 
 class AttackDetector:
+    """
+        A machine learning-based attack detector that supports multiple classification methods.
+
+        Initialization selects the classification algorithm based on the specified method.
+        Supported methods include Random Forest (RF), Support Vector Machine (SVM),
+        Logistic Regression (LR), and K-Nearest Neighbors (KNN).
+    """
     def __init__(self, method):
+        """
+            Initializes the detector with the specified classification method.
+
+            :param method: The machine learning method to use ('RF', 'SVM', 'LR', 'KNN').
+        """
         self.method = method
         if method == "RF":
             self.clf = RandomForestClassifier(
@@ -39,6 +51,16 @@ class AttackDetector:
             self.clf = KNeighborsClassifier(n_neighbors=3)
 
     def train(self, X, y, preprocessor):
+        """
+            Trains the model using the provided dataset and a preprocessor.
+
+            Splits the dataset into training and validation sets, trains the model,
+            evaluates its performance, and saves the model and a confusion matrix plot.
+
+            :param X: The feature matrix.
+            :param y: The target vector.
+            :param preprocessor: A preprocessing pipeline.
+        """
         pipeline = Pipeline(
             steps=[
                 ("preprocessor", preprocessor),
@@ -80,6 +102,13 @@ class AttackDetector:
         print("Model training and evaluation complete.")
 
     def test(self, data):
+        """
+            Loads a trained model and uses it to predict attack types on new data.
+
+            Prints the prediction summary and detects potential attacks based on predefined thresholds.
+
+            :param data: The new dataset to predict on.
+        """
         model = load(f"attacks/ml_detector/trained_model_{self.method}.joblib")
         if data.empty:
             print("No valid data found in Wireshark output.")

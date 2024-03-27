@@ -4,6 +4,18 @@ import string
 
 
 def meddle(file_path):
+    """
+        Randomly alters the password of one user in a CSV file.
+
+        Parameters:
+        - file_path (str): Path to the CSV file containing user data.
+
+        Behavior:
+        - Reads user data from the file, selects a random user, and generates a new password.
+        - Overwrites the original file with the modified user data, including the new password for the selected user.
+        - Prints the username of the user whose password was altered.
+
+    """
     with open(file_path, 'r+', newline='') as file:
         reader = csv.reader(file)
         writer = csv.writer(file)

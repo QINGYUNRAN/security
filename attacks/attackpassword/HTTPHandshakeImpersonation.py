@@ -30,12 +30,30 @@ key = key_b
 
 
 def decrypt(data: str):
+    """
+        Decrypts the given string using AES CBC mode with a predefined key and IV.
+
+        Parameters:
+        - data (str): The base64-encoded encrypted string to be decrypted.
+
+        Returns:
+        - str: The decrypted string.
+
+    """
     aes = AES.new(bytes(key), AES.MODE_CBC, bytes(iv))
     pad_text = aes.decrypt(base64.b64decode(data.encode("UTF-8"))).decode("UTF-8")
     return pkcs7.PKCS7Encoder().decode(pad_text)
 
 
 class RequestHandlerHTTP(BaseHTTPRequestHandler):
+    """
+        A HTTP request handler class that processes POST requests with specific methods.
+
+        Behavior:
+        - On receiving a 'handshake' method, it encrypts a predefined message using the RSA public key provided in the request, sets cookies, and responds with the encrypted message.
+        - On receiving a 'securePassthrough' method, it decrypts the request, extracts a password, and prints it.
+
+    """
     def do_POST(self):
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length)

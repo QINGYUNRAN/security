@@ -2,7 +2,6 @@ import smtplib
 from flask import (
     Flask,
     render_template,
-    render_template_string,
     request,
     redirect,
     url_for,
@@ -21,9 +20,8 @@ import re
 import hashlib
 import pandas as pd
 import os, csv
-from func.meddle_password import meddle
+from attacks.attackpassword.meddle_password_file import meddle
 from attacks.file_checker import check_integrity
-from func.database import get_data_from_mysql
 from func.keyPressed import keyPressed
 from func.check_ip import check_ip_limit
 import time
@@ -57,6 +55,17 @@ banned_ips = {}
 
 
 def rate_limiter(func):
+    """
+       Decorator that limits the rate of requests to the decorated function based on the requester's IP address.
+       If the number of requests exceeds a threshold within a certain time period, access is denied.
+
+       Args:
+           func (function): The function to be decorated and subject to rate limiting.
+
+       Returns:
+           function: A wrapper function that implements the rate limiting logic. If the request is allowed,
+           it calls the original function; otherwise, it returns an error response.
+    """
     def wrapper(*args, **kwargs):
         ip_address = request.remote_addr
         current_time = time.time()
@@ -91,6 +100,13 @@ def rate_limiter(func):
 @app.route("/")
 @rate_limiter
 def index():
+    """
+        The index route that clears the session and redirects to the login page.
+        This route is protected by a rate limiter.
+
+        Returns:
+            Redirect: A redirection to the login URL.
+    """
     session.clear()
     return redirect(url_for("login"))
 
@@ -104,6 +120,15 @@ totp = pyotp.TOTP(key)
 
 @app.route("/pythonlogin/", methods=["GET", "POST"])
 def login():
+    """
+        The login route allows users to log in by submitting a username and password.
+        It implements rate limiting based on IP address and additional logic for user authentication.
+        If the credentials are correct, a verification code is sent to the user's email.
+
+        Returns:
+            RenderTemplate or Redirect: Renders the login template on a GET request or unsuccessful login attempt.
+            On successful login, redirects to the verification code input page.
+    """
     ip_address = request.remote_addr
     if not check_ip_limit(ip_address):
         flash("Too many login attempts. Please try again later.", "warning")
@@ -176,6 +201,18 @@ def login():
 
 @app.route("/pythonlogin/verify", methods=["GET", "POST"])
 def verify():
+    """
+       This function processes the user's input verification code (vercode) submitted through a form.
+       If the method is POST and the 'vercode' is present in the form, it checks if the provided
+       verification code matches the one stored in the session ('vercode'). If they match, it sets
+       the session's 'loggedin' status to True and redirects the user to the home page. If they don't
+       match, or if the request method is GET, it renders the 'auth/verify.html' template. For incorrect
+       codes, it flashes a warning message.
+
+       Returns:
+       - Redirects to the home page if verification code matches the session code.
+       - Renders the verification page with a warning message for incorrect verification code.
+   """
     if request.method == "POST" and "vercode" in request.form:
         vercode = request.form["vercode"]
         if vercode == session["vercode"]:
@@ -190,6 +227,19 @@ def verify():
 
 @app.route("/pythonlogin/register", methods=["GET", "POST"])
 def register():
+    """
+        This function facilitates the registration of a new user. It checks if the request method is POST
+        and if the required fields ('username', 'password', 'email') are provided in the form. If so, it
+        hashes the password using MD5 and checks if the username already exists in the database (a CSV file
+        in this context). If the username exists, it flashes a warning message. Otherwise, it adds the new user
+        to the database and redirects to the login page. For GET requests or if the username already exists, it
+        renders the 'auth/register.html' template.
+
+        Returns:
+        - On successful registration, redirects to the login page.
+        - If the username already exists, renders the registration page with a warning message.
+        - On GET request, simply renders the registration page without any message.
+    """
     if (
         request.method == "POST"
         and "username" in request.form
@@ -221,7 +271,13 @@ def register():
 
 @app.route("/home")
 def home():
+    """
+        Renders the home page for logged-in users.
 
+        - If XSS protection is enabled, sanitizes the username.
+        - Shows employee records.
+        - Redirects to login if not logged in.
+    """
     if "loggedin" in session and session["loggedin"] == True:
         if app.config["XSS_ENABLED"] == True:
             username = session["username"]
@@ -238,6 +294,12 @@ def home():
 
 @app.route("/profile")
 def profile():
+    """
+        Displays the user's profile page with account details for logged-in users.
+
+        - Retrieves user account details from a CSV file.
+        - Redirects to login if not logged in.
+    """
     # Check if user is loggedin
     if "loggedin" in session and session["loggedin"] == True:
         df_accounts = pd.read_csv(account_file_path)
@@ -253,6 +315,12 @@ def profile():
 
 @app.route("/checkin")
 def checkin():
+    """
+        Renders the check-in page for logged-in users.
+
+        - Shows check-in records.
+        - Redirects to login if not logged in.
+    """
     if "loggedin" in session and session["loggedin"] == True:
         username = html.escape(session["username"])
         records = checkin_records
@@ -264,6 +332,12 @@ def checkin():
 
 @app.route("/holidays")
 def holidays():
+    """
+        Displays the holidays page for logged-in users.
+
+        - Shows holidays records.
+        - Redirects to login if not logged in.
+    """
     if "loggedin" in session and session["loggedin"] == True:
         username = html.escape(session["username"])
         records = holidays_records
@@ -275,6 +349,12 @@ def holidays():
 
 @app.route("/salary")
 def salary():
+    """
+        Renders the salary page for logged-in users.
+
+        - Shows salary records.
+        - Redirects to login if not logged in.
+    """
     if "loggedin" in session and session["loggedin"] == True:
         username = html.escape(session["username"])
         records = salary_records
@@ -286,6 +366,12 @@ def salary():
 
 @app.route("/logout")
 def logout():
+    """
+        Logs out the user.
+
+        - Clears the session.
+        - Redirects to the login page.
+    """
     session.pop("loggedin", None)
     session.pop("id", None)
     session.pop("username", None)
@@ -294,6 +380,15 @@ def logout():
 
 @app.route("/change_password", methods=["GET", "POST"])
 def change_password():
+    """
+        Handles password change requests for logged-in users.
+
+        - Validates current password and ensures new passwords match.
+        - Updates the user's password in the CSV database if validations pass.
+        - Redirects to the profile page on successful password change.
+        - Shows warnings for incorrect current password or non-matching new passwords.
+        - Redirects to login if not logged in.
+    """
     if "loggedin" not in session:
         return redirect(url_for("login"))
 

@@ -9,6 +9,16 @@ thread = 10
 
 
 def start():
+    """
+        Executes a stress test on a server by repeatedly sending random data packets via TCP.
+
+        Behavior:
+        - Establishes a TCP connection to a predetermined IP and port.
+        - Sends a specified number of random data packets in each connection attempt.
+        - Increments and displays the number of successful data sends.
+        - Closes the socket and prints any exceptions encountered during the process.
+
+    """
     hh = random._urandom(10)
     xx = 0
     while True:

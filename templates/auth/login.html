@@ -18,6 +18,16 @@
         </label>
         <input type="password" name="password" placeholder="Password" id="password" required>
         <div class="msg">{{ msg }}</div>
+        <label for="code">Code</label>
+        <select name="code" id="code">
+            <option value="Verification Code">Verification Code</option>
+            <option value="QR Code">QR Code</option>
+        </select>
+    
+
+
+        <!-- <input type="radio" name="code" value="Verification Code" id="vc" required>Verification Code
+        <input type="radio" name="code" value="QR Code" id="qc" required>QR Code -->
         <input type="submit" value="Login">
     </form>
 </div>

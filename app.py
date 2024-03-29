@@ -27,12 +27,14 @@ from func.check_ip import check_ip_limit
 import time
 from attacks.ml_detector.utils import load_data, process_wireshark
 from attacks.ml_detector.attack_detector import AttackDetector
+import qrcode
+import time
 
 
-employee_records = pd.read_csv("data/data/employees.csv").to_dict(orient='records')
-checkin_records = pd.read_csv("data/data/checkIn.csv").to_dict(orient='records')
-salary_records = pd.read_csv("data/data/salary.csv").to_dict(orient='records')
-holidays_records = pd.read_csv("data/data/holidays.csv").to_dict(orient='records')
+employee_records = pd.read_csv("data/employees.csv").to_dict(orient='records')
+checkin_records = pd.read_csv("data/checkIn.csv").to_dict(orient='records')
+salary_records = pd.read_csv("data/salary.csv").to_dict(orient='records')
+holidays_records = pd.read_csv("data/holidays.csv").to_dict(orient='records')
 # employee_records, checkin_records, salary_records, holidays_records = (
 #     get_data_from_mysql()
 # )
@@ -116,15 +118,19 @@ key = (
 )  # same key create same password, no one else can get the key
 # print(key)
 totp = pyotp.TOTP(key)
-
+#print(totp)
+#print(totp.now())
 
 @app.route("/pythonlogin/", methods=["GET", "POST"])
 def login():
     """
         The login route allows users to log in by submitting a username and password.
-        It implements rate limiting based on IP address and additional logic for user authentication.
-        If the credentials are correct, a verification code is sent to the user's email.
-
+        It implements rate limiting based on IP address and two additional logic for user authentication.
+        The two additional authentication methods are Multi-factor authentication(MFA) and Two-factor autheentication(2FA)
+        If the credentials are correct, user can choose one of the two verification methods.
+        MFA: verification code is sent to the user's email
+        2FA: user needs to use GOOGLE Authenticatior to scan QR code and input the verification code in the app.
+        
         Returns:
             RenderTemplate or Redirect: Renders the login template on a GET request or unsuccessful login attempt.
             On successful login, redirects to the verification code input page.
@@ -133,13 +139,17 @@ def login():
     if not check_ip_limit(ip_address):
         flash("Too many login attempts. Please try again later.", "warning")
         return render_template("auth/login.html", title="Login")
+    print(request.form)
     if (
         request.method == "POST"
         and "username" in request.form
         and "password" in request.form
+        and "code" in request.form
     ):
         username = request.form["username"]
         password = request.form["password"]
+        code = request.form["code"]
+
         hashed_password = hashlib.md5(password.encode()).hexdigest()
 
         if os.path.exists(account_file_path) and os.path.getsize(account_file_path) > 0:
@@ -152,48 +162,57 @@ def login():
             (df_accounts["username"] == username)
             & (df_accounts["password"] == hashed_password)
         ]
-        if not user.empty:
-            ver_code = totp.now()
-            print(ver_code)  # time base for 30 seconds, after that it will exceeed
+     
+        if not user.empty: 
+            # MFA method
+            if code == "Verification Code":
+                global totp
+                ver_code = totp.now()
+                print(ver_code)  # time base for 30 seconds, after that it will exceeed
+                # send to your email box
+                from_addr = "2387324762@qq.com"
+                email_password = "pdewxqltfshtebia"
+                # to_addr = "2387324762@qq.com"
+                to_addr = user["email"].iloc[0]
+                smtp_server = "smtp.qq.com"
 
-            # send to your email box
-            from_addr = "2387324762@qq.com"
-            email_password = "pdewxqltfshtebia"
-            # to_addr = "2387324762@qq.com"
-            to_addr = user["email"].iloc[0]
-            smtp_server = "smtp.qq.com"
-
-            msg = MIMEText(
-                f"Dear Sir/Madam,\n"
-                + "  "
-                + f"Your veification code is {ver_code}."
-                + "\n"
-                "\n"
-                "Best regards,\n"
-                "Message from ",  # company name
-                "plain",
-                "utf-8",
-            )
-            msg["From"] = Header(from_addr)
-            msg["To"] = Header(to_addr)
-            subject = f"Verification code message"
-            msg["Subject"] = Header(subject, "utf-8")
-
-            try:
-                smtpobj = smtplib.SMTP_SSL(smtp_server)
-                smtpobj.connect(smtp_server, 465)
-                smtpobj.login(from_addr, email_password)
-                smtpobj.sendmail(from_addr, to_addr, msg.as_string())
-                print("Send successfully")
-            except smtplib.SMTPException:
-                print("Fail to send")
-            finally:
-                smtpobj.quit()
-            session["username"] = username
-            session["vercode"] = ver_code
-            print(session)
-            flash("Correct password, please input your verification code", "warning")
-            return redirect(url_for("verify"))
+                msg = MIMEText(
+                    f"Dear Sir/Madam,\n"
+                    + "  "
+                    + f"Your veification code is {ver_code}."
+                    + "\n"
+                    "\n"
+                    "Best regards,\n"
+                    "Message from ",  # company name
+                    "plain",
+                    "utf-8",
+                )
+                msg["From"] = Header(from_addr)
+                msg["To"] = Header(to_addr)
+                subject = f"Verification code message"
+                msg["Subject"] = Header(subject, "utf-8")
+                try:
+                    smtpobj = smtplib.SMTP_SSL(smtp_server)
+                    smtpobj.connect(smtp_server, 465)
+                    smtpobj.login(from_addr, email_password)
+                    smtpobj.sendmail(from_addr, to_addr, msg.as_string())
+                    print("Send successfully")
+                except smtplib.SMTPException:
+                    print("Fail to send")
+                finally:
+                    smtpobj.quit()
+                session["username"] = username
+                session["vercode"] = ver_code
+                print(session)
+                flash("Correct password, please input your verification code", "warning")
+                return redirect(url_for("verify"))
+            elif code == "QR Code": # 2FA method
+                session["username"] = username
+                uri = pyotp.totp.TOTP(key).provisioning_uri(name = "yourself", issuer_name="WhiteHats")
+                qrcode.make(uri).save("static/totp.png") # make QR code based on the key
+                session["username"] = username
+                flash("Correct password, please input your QR verification code", "warning")
+                return redirect(url_for("qrverify"))    
         else:
             flash("Incorrect username/password!", "warning")
     return render_template("auth/login.html", title="Login")
@@ -202,6 +221,7 @@ def login():
 @app.route("/pythonlogin/verify", methods=["GET", "POST"])
 def verify():
     """
+       Multi-factor authentication (MFA) 
        This function processes the user's input verification code (vercode) submitted through a form.
        If the method is POST and the 'vercode' is present in the form, it checks if the provided
        verification code matches the one stored in the session ('vercode'). If they match, it sets
@@ -223,6 +243,33 @@ def verify():
             session["loggedin"] = False
             flash("Incorrect verification code!", "warning")
     return render_template("auth/verify.html", title="Verify")
+
+
+@app.route("/pythonlogin/qrverify", methods=["GET", "POST"])
+def qrverify():
+    """
+       Two-factor authentication (2FA) 
+       This function processes the user's input verification code (vercode) submitted through a form.
+       If the method is POST and the 'qrvercode' is present in the form, it checks if the user's input
+       verification code matches the code which is scanned from the QR code(totp.now()). If they match, 
+       it sets the session's 'loggedin' status to True and redirects the user to the home page. If they 
+       don't match, or if the request method is GET, it renders the 'auth/verify.html' template. For 
+       incorrect codes, it flashes a warning message.
+
+       Returns:
+       - Redirects to the home page if verification code matches the session code.
+       - Renders the verification page with a warning message for incorrect verification code.
+   """
+    if request.method == "POST" and "qrvercode" in request.form:
+        qrvercode = request.form["qrvercode"]
+        if qrvercode == totp.now():
+            session["loggedin"] = True
+            return redirect(url_for("home"))
+        else:
+            session["loggedin"] = False
+            flash("Incorrect verification code!", "warning")
+    return render_template("auth/qrverify.html", title="QRVeriy")
+
 
 
 @app.route("/pythonlogin/register", methods=["GET", "POST"])

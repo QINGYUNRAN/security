@@ -1,0 +1,21 @@
+{% extends 'auth/auth_layout.html' %}
+{% block title %} {{ title }} {% endblock %}
+{% block content%}
+<div class="loginqr">
+    {% include "includes/alert.html" %}
+    <h1>QRVerify</h1>
+    <div class="links">
+        <a href="{{ url_for('qrverify') }}" class="active">QRVerify</a>
+        <!-- <a href="{{ url_for('register') }}">Register</a> -->
+    </div>
+    <form action="{{ url_for('qrverify') }}" method="post">
+        <label for="qrvercode">
+            <i class="fas fa-lock"></i>
+        </label>
+        <input type="text" name="qrvercode" placeholder="QR Verification code" id="qrvercode" required>
+        <div class="msg">{{ msg }}</div>  
+        <input type="submit" value="Login">  
+    </form>
+    <div class="box"></div>
+
+{% endblock %}
